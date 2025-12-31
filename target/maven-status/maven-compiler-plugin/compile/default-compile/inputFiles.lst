@@ -6,7 +6,9 @@ D:\中广核\开发\项目\DRM_App\src\main\java\com\cgnpc\drm\controller\DeviceControl
 D:\中广核\开发\项目\DRM_App\src\main\java\com\cgnpc\drm\service\impl\WorkingModeServiceImpl.java
 D:\中广核\开发\项目\DRM_App\src\main\java\com\cgnpc\drm\service\DeviceService.java
 D:\中广核\开发\项目\DRM_App\src\main\java\com\cgnpc\drm\controller\WorkingModeController.java
+D:\中广核\开发\项目\DRM_App\src\main\java\com\cgnpc\drm\service\MQTTService.java
 D:\中广核\开发\项目\DRM_App\src\main\java\com\cgnpc\drm\dto\WorkingModeDTO.java
+D:\中广核\开发\项目\DRM_App\src\main\java\com\cgnpc\drm\config\MQTTConfig.java
 D:\中广核\开发\项目\DRM_App\src\main\java\com\cgnpc\drm\service\impl\DeviceServiceImpl.java
 D:\中广核\开发\项目\DRM_App\src\main\java\com\cgnpc\drm\entity\WorkingMode.java
 D:\中广核\开发\项目\DRM_App\src\main\java\com\cgnpc\drm\repository\DeviceRepository.java

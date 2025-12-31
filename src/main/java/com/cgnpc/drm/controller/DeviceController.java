@@ -113,6 +113,19 @@ public class DeviceController {
         return ResponseVO.success(message, device);
     }
 
+    /**
+     * 控制灯光开关
+     * PUT /api/device/controlLight
+     */
+    @PutMapping("/controlLight")
+    public ResponseVO<Device> controlLight(
+            @RequestParam String deviceId,
+            @RequestParam Boolean status) {
+        Device device = deviceService.controlLight(deviceId, status);
+        String message = status ? "灯光开启成功" : "灯光关闭成功";
+        return ResponseVO.success(message, device);
+    }
+
     @PostMapping("/addDevice")
     public ResponseVO<Device> addDevice(@RequestBody Map<String, String> params) {
         // 必填字段检查
@@ -134,6 +147,7 @@ public class DeviceController {
         device.setFanStatus(Optional.ofNullable(params.get("fanStatus")).map(Boolean::parseBoolean).orElse(null));
         device.setDeviceStatus(Optional.ofNullable(params.get("deviceStatus")).map(Boolean::parseBoolean).orElse(null));
         device.setLockStatus(Optional.ofNullable(params.get("lockStatus")).map(Boolean::parseBoolean).orElse(null));
+        device.setLightStatus(Optional.ofNullable(params.get("lightStatus")).map(Boolean::parseBoolean).orElse(null));
         
         Device newDevice = deviceService.addDevice(device);
         return ResponseVO.success("设备新增成功", newDevice);

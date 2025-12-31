@@ -68,6 +68,14 @@ public interface DeviceService {
     Device controlDevicePower(String deviceId, Boolean status);
 
     /**
+     * 控制灯光开关
+     * @param deviceId 设备ID
+     * @param status 灯光状态
+     * @return 更新后的设备信息
+     */
+    Device controlLight(String deviceId, Boolean status);
+
+    /**
      * 新增设备
      * @param device 设备信息
      * @return 新增的设备信息

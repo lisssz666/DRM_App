@@ -27,3 +27,12 @@ mybatis-plus:
   type-aliases-package: com.cgnpc.drm.entity
   configuration:
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+# MQTT配置
+mqtt:
+  broker-url: tcp://127.0.0.1:1883
+  client-id: drm-sprayer-server
+  username: spray001
+  password: spray@2025
+  qos: 0
+  keep-alive-interval: 60

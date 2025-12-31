@@ -20,6 +20,11 @@ public class DeviceControlDTO {
     private Boolean lockStatus;
     
     /**
+     * 灯光状态：true-开启，false-关闭
+     */
+    private Boolean lightStatus;
+    
+    /**
      * 风扇速度：0-100之间的数值
      */
     private Integer fanSpeed;

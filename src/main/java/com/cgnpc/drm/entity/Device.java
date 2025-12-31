@@ -33,6 +33,9 @@ public class Device {
     @Column(name = "lock_status")
     private Boolean lockStatus; // 锁定状态（true: 锁定，false: 解锁）
 
+    @Column(name = "light_status")
+    private Boolean lightStatus; // 灯光状态（true: 开启，false: 关闭）
+
     @Column(name = "fan_speed")
     private Integer fanSpeed; // 风扇速度（0-100）
 

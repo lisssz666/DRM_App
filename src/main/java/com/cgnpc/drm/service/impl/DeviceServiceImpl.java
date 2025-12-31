@@ -3,6 +3,7 @@ package com.cgnpc.drm.service.impl;
 import com.cgnpc.drm.entity.Device;
 import com.cgnpc.drm.repository.DeviceRepository;
 import com.cgnpc.drm.service.DeviceService;
+import com.cgnpc.drm.service.MQTTService;
 import com.cgnpc.drm.dto.DeviceControlDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -14,6 +15,9 @@ public class DeviceServiceImpl implements DeviceService {
 
     @Autowired
     private DeviceRepository deviceRepository;
+
+    @Autowired
+    private MQTTService mqttService;
 
     @Override
     public Device getDeviceInfo(String deviceId) {
@@ -29,12 +33,21 @@ public class DeviceServiceImpl implements DeviceService {
 
         if (controlDTO.getFanStatus() != null) {
             device.setFanStatus(controlDTO.getFanStatus());
+            // 发送风扇控制命令
+            mqttService.sendFanCommand(deviceId, controlDTO.getFanStatus() ? 1 : 0);
         }
         if (controlDTO.getDeviceStatus() != null) {
             device.setDeviceStatus(controlDTO.getDeviceStatus());
         }
         if (controlDTO.getLockStatus() != null) {
             device.setLockStatus(controlDTO.getLockStatus());
+            // 发送锁定控制命令
+            mqttService.sendLockCommand(deviceId, controlDTO.getLockStatus() ? 1 : 0);
+        }
+        if (controlDTO.getLightStatus() != null) {
+            device.setLightStatus(controlDTO.getLightStatus());
+            // 发送灯光控制命令
+            mqttService.sendLightCommand(deviceId, controlDTO.getLightStatus() ? 1 : 0);
         }
         if (controlDTO.getFanSpeed() != null) {
             device.setFanSpeed(controlDTO.getFanSpeed());
@@ -85,6 +98,8 @@ public class DeviceServiceImpl implements DeviceService {
         }
 
         device.setLockStatus(lockStatus);
+        // 发送锁定控制命令
+        mqttService.sendLockCommand(deviceId, lockStatus ? 1 : 0);
         device.setUpdatedTime(new Date());
         return deviceRepository.save(device);
     }
@@ -97,6 +112,8 @@ public class DeviceServiceImpl implements DeviceService {
         }
 
         device.setFanStatus(status);
+        // 发送风扇控制命令
+        mqttService.sendFanCommand(deviceId, status ? 1 : 0);
         device.setUpdatedTime(new Date());
         return deviceRepository.save(device);
     }
@@ -126,6 +143,20 @@ public class DeviceServiceImpl implements DeviceService {
     }
 
     @Override
+    public Device controlLight(String deviceId, Boolean status) {
+        Device device = deviceRepository.findByDeviceId(deviceId);
+        if (device == null) {
+            throw new RuntimeException("设备不存在");
+        }
+
+        device.setLightStatus(status);
+        // 发送灯光控制命令
+        mqttService.sendLightCommand(deviceId, status ? 1 : 0);
+        device.setUpdatedTime(new Date());
+        return deviceRepository.save(device);
+    }
+
+    @Override
     public Device addDevice(Device device) {
         // 检查设备ID是否已存在
         if (deviceRepository.findByDeviceId(device.getDeviceId()) != null) {
@@ -146,6 +177,9 @@ public class DeviceServiceImpl implements DeviceService {
         }
         if (device.getLockStatus() == null) {
             device.setLockStatus(false);
+        }
+        if (device.getLightStatus() == null) {
+            device.setLightStatus(false);
         }
         if (device.getFanSpeed() == null) {
             device.setFanSpeed(0);
