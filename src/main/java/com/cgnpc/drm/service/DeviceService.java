@@ -2,6 +2,7 @@ package com.cgnpc.drm.service;
 
 import com.cgnpc.drm.entity.Device;
 import com.cgnpc.drm.dto.DeviceControlDTO;
+import java.util.List;
 
 public interface DeviceService {
     /**
@@ -81,4 +82,17 @@ public interface DeviceService {
      * @return 新增的设备信息
      */
     Device addDevice(Device device);
+    
+    /**
+     * 删除设备
+     * @param deviceId 设备ID
+     * @return 删除结果
+     */
+    boolean deleteDevice(String deviceId);
+    
+    /**
+     * 获取所有设备列表
+     * @return 设备列表
+     */
+    List<Device> getAllDevices();
 }

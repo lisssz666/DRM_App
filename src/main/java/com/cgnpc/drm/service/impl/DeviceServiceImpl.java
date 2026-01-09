@@ -9,6 +9,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
+import java.util.List;
+import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class DeviceServiceImpl implements DeviceService {
@@ -156,12 +159,46 @@ public class DeviceServiceImpl implements DeviceService {
         return deviceRepository.save(device);
     }
 
+    // 生成12位字母数字组合的唯一设备ID
+    private String generateUniqueDeviceId() {
+        String characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        Random random = new Random();
+        StringBuilder deviceId = new StringBuilder(12);
+        
+        for (int i = 0; i < 12; i++) {
+            deviceId.append(characters.charAt(random.nextInt(characters.length())));
+        }
+        
+        // 检查生成的设备ID是否已存在，若存在则重新生成（最多尝试5次）
+        for (int attempt = 0; attempt < 5; attempt++) {
+            if (deviceRepository.findByDeviceId(deviceId.toString()) == null) {
+                return deviceId.toString();
+            }
+            // 重新生成
+            deviceId = new StringBuilder(12);
+            for (int i = 0; i < 12; i++) {
+                deviceId.append(characters.charAt(random.nextInt(characters.length())));
+            }
+            
+            // 可选：如果多次尝试失败，增加一点延迟避免无限循环
+            if (attempt >= 3) {
+                try {
+                    TimeUnit.MILLISECONDS.sleep(50);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+        }
+        
+        // 如果尝试多次仍失败，抛出异常
+        throw new RuntimeException("无法生成唯一设备ID，请稍后重试");
+    }
+
     @Override
     public Device addDevice(Device device) {
-        // 检查设备ID是否已存在
-        if (deviceRepository.findByDeviceId(device.getDeviceId()) != null) {
-            throw new RuntimeException("设备ID已存在");
-        }
+        // 自动生成设备ID
+        String uniqueDeviceId = generateUniqueDeviceId();
+        device.setDeviceId(uniqueDeviceId);
         
         // 设置创建时间和更新时间
         Date now = new Date();
@@ -189,5 +226,21 @@ public class DeviceServiceImpl implements DeviceService {
         }
         
         return deviceRepository.save(device);
+    }
+    
+    @Override
+    public boolean deleteDevice(String deviceId) {
+        Device device = deviceRepository.findByDeviceId(deviceId);
+        if (device == null) {
+            throw new RuntimeException("设备不存在");
+        }
+        
+        deviceRepository.delete(device);
+        return true;
+    }
+    
+    @Override
+    public List<Device> getAllDevices() {
+        return deviceRepository.findAll();
     }
 }

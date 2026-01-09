@@ -34,13 +34,16 @@ public class MQTTConfig {
     private int keepAliveInterval;
 
     @Bean
-    public MqttClient mqttClient() {
+    public MqttClient mqttClient(MqttConnectOptions options) {
         try {
             MqttClient client = new MqttClient(brokerUrl, clientId, new MemoryPersistence());
             logger.info("MQTT客户端创建成功，broker地址: {}", brokerUrl);
+            // 初始化时建立连接，避免每次发送命令都重新连接
+            client.connect(options);
+            logger.info("MQTT客户端连接成功，broker地址: {}", brokerUrl);
             return client;
         } catch (MqttException e) {
-            logger.error("MQTT客户端创建失败: {}", e.getMessage());
+            logger.error("MQTT客户端创建或连接失败: {}", e.getMessage());
             throw new RuntimeException("MQTT客户端初始化失败", e);
         }
     }
@@ -50,7 +53,7 @@ public class MQTTConfig {
         MqttConnectOptions options = new MqttConnectOptions();
         options.setUserName(username);
         options.setPassword(password.toCharArray());
-        options.setCleanSession(true);
+        options.setCleanSession(false); // 设置为false，保持会话持久性
         options.setKeepAliveInterval(keepAliveInterval);
         return options;
     }

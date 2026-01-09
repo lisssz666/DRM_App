@@ -30,8 +30,8 @@ mybatis-plus:
 
 # MQTT配置
 mqtt:
-  broker-url: tcp://127.0.0.1:1883
-  client-id: drm-sprayer-server
+  broker-url: tcp://47.251.245.247:1883
+  client-id: mqttx_spray001
   username: spray001
   password: spray@2025
   qos: 0

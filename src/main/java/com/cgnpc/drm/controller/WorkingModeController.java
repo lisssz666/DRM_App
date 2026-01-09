@@ -13,7 +13,7 @@ import javax.validation.Valid;
 import java.util.List;
 
 @RestController
-@RequestMapping("/working-mode")
+@RequestMapping("/workingMode")
 public class WorkingModeController {
 
     @Autowired
@@ -44,7 +44,7 @@ public class WorkingModeController {
      * POST /api/working-mode/addWorkingMode
      */
     @PostMapping("/addWorkingMode")
-    public ResponseVO<WorkingMode> addWorkingMode(@RequestBody Map<String, String> params) {
+    public ResponseVO<WorkingMode> addWorkingMode( Map<String, String> params) {
         // 必填字段检查
         if (params.get("deviceId") == null || params.get("deviceId").isEmpty()) {
             return ResponseVO.error("设备ID不能为空");

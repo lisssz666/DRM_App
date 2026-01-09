@@ -29,17 +29,6 @@ public class MQTTService {
     private String mqttBrokerUrl;
 
     /**
-     * 确保MQTT客户端已连接
-     */
-    private void ensureConnected() throws MqttException {
-        if (!mqttClient.isConnected()) {
-            logger.info("正在连接MQTT broker: {}", mqttBrokerUrl);
-            mqttClient.connect(mqttConnectOptions);
-            logger.info("MQTT客户端连接成功: {}", mqttBrokerUrl);
-        }
-    }
-
-    /**
      * 发送MQTT命令到设备
      * @param deviceId 设备ID
      * @param command 命令内容，如 "lock 0", "light 1", "fan 1"
@@ -47,9 +36,6 @@ public class MQTTService {
     public void sendCommand(String deviceId, String command) {
         String topic = TOPIC_PREFIX + deviceId + TOPIC_SUFFIX;
         try {
-            // 确保MQTT客户端已连接
-            ensureConnected();
-            
             MqttMessage message = new MqttMessage(command.getBytes());
             message.setQos(mqttQos);
             mqttClient.publish(topic, message);
