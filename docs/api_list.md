@@ -65,6 +65,69 @@
 
 ---
 
+## 用户管理接口
+
+### 1. 用户登录
+- **URL**: POST /api/user/login
+- **描述**: 用户登录（支持密码登录和验证码登录）
+- **参数**: 
+  - 登录信息（通过请求体传递，包含email/phone、password/code、loginType）
+- **返回**: 登录成功的用户信息
+
+### 2. 用户注册
+- **URL**: POST /api/user/register
+- **描述**: 用户注册
+- **参数**: 
+  - 注册信息（通过请求体传递，包含email、phone、password、confirmPassword、code）
+- **返回**: 注册成功的用户信息
+
+### 3. 发送验证码
+- **URL**: POST /api/user/sendCode
+- **描述**: 发送验证码（支持邮箱和手机号，用于登录、注册或忘记密码）
+- **参数**: 
+  - email: 邮箱（可选）
+  - phone: 手机号（可选）
+  - type: 用途类型（login/register/forgot）
+- **返回**: 操作结果
+
+### 4. 验证验证码
+- **URL**: POST /api/user/verifyCode
+- **描述**: 验证验证码
+- **参数**: 
+  - email: 邮箱（可选）
+  - phone: 手机号（可选）
+  - code: 验证码
+  - type: 用途类型（login/register/forgot）
+- **返回**: 验证结果
+
+### 5. 忘记密码
+- **URL**: POST /api/user/forgotPassword
+- **描述**: 忘记密码，重置密码
+- **参数**: 
+  - email: 邮箱
+  - code: 验证码
+  - newPassword: 新密码
+  - confirmPassword: 确认新密码
+- **返回**: 操作结果
+
+### 6. 检查邮箱是否已存在
+- **URL**: GET /api/user/checkEmail
+- **描述**: 检查邮箱是否已存在
+- **参数**: 
+  - email: 邮箱
+
+  
+- **返回**: 邮箱是否已存在
+
+### 7. 检查手机号是否已存在
+- **URL**: GET /api/user/checkPhone
+- **描述**: 检查手机号是否已存在
+- **参数**: 
+  - phone: 手机号
+- **返回**: 手机号是否已存在
+
+---
+
 ## 工作模式接口
 
 ### 1. 获取设备工作模式列表

@@ -49,4 +49,24 @@ public class Device {
     @Column(name = "updated_time")
     @Temporal(TemporalType.TIMESTAMP)
     private Date updatedTime;
+
+    // 新增字段 - 香薰机状态信息
+    @Column(name = "pump_usage_time")
+    private Integer pumpUsageTime; // 气泵使用时间（分钟）
+
+    @Column(name = "device_posture")
+    private Integer devicePosture; // 设备状态：0-竖立，1-倾倒
+
+    @Column(name = "liquid_level")
+    private Integer liquidLevel; // 液位指示：0-低，1-中，2-高
+
+    @Column(name = "oil_low_alert")
+    private Boolean oilLowAlert; // 油量不足提醒：true-提醒，false-正常
+
+    @Column(name = "pump_replace_alert")
+    private Boolean pumpReplaceAlert; // 气泵更换提醒：true-提醒，false-正常
+
+    @Column(name = "last_pump_reset_time")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date lastPumpResetTime; // 上次重置气泵使用时间的时间
 }

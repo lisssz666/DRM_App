@@ -3,6 +3,7 @@ package com.cgnpc.drm.service;
 import com.cgnpc.drm.entity.Device;
 import com.cgnpc.drm.dto.DeviceControlDTO;
 import java.util.List;
+import java.util.Map;
 
 public interface DeviceService {
     /**
@@ -95,4 +96,18 @@ public interface DeviceService {
      * @return 设备列表
      */
     List<Device> getAllDevices();
+
+    /**
+     * 重置气泵使用时间
+     * @param deviceId 设备ID
+     * @return 更新后的设备信息
+     */
+    Device resetPumpUsageTime(String deviceId);
+
+    /**
+     * 获取设备状态信息
+     * @param deviceId 设备ID
+     * @return 设备状态信息
+     */
+    Map<String, Object> getDeviceStatusInfo(String deviceId);
 }

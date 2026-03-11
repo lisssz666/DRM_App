@@ -13,7 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/device")
+@RequestMapping("/api/device")
 public class DeviceController {
 
     private static final Logger logger = LoggerFactory.getLogger(DeviceController.class);
@@ -188,6 +188,26 @@ public class DeviceController {
         Device device = deviceService.controlLight(deviceId, status);
         String message = status ? "灯光开启成功" : "灯光关闭成功";
         return ResponseVO.success(message, device);
+    }
+
+    /**
+     * 重置气泵使用时间
+     * PUT /api/device/resetPumpUsageTime
+     */
+    @PutMapping("/resetPumpUsageTime")
+    public ResponseVO<Device> resetPumpUsageTime(@RequestParam String deviceId) {
+        Device device = deviceService.resetPumpUsageTime(deviceId);
+        return ResponseVO.success("气泵使用时间重置成功", device);
+    }
+
+    /**
+     * 获取设备状态信息
+     * GET /api/device/getDeviceStatusInfo
+     */
+    @GetMapping("/getDeviceStatusInfo")
+    public ResponseVO<Map<String, Object>> getDeviceStatusInfo(@RequestParam String deviceId) {
+        Map<String, Object> statusInfo = deviceService.getDeviceStatusInfo(deviceId);
+        return ResponseVO.success("获取设备状态信息成功", statusInfo);
     }
   
 }

@@ -2,6 +2,14 @@
 
 | 分类 | API名称 | 请求方式 | URL | 描述 | 参数 | 返回结果 |
 | --- | --- | --- | --- | --- | --- | --- |
+| 用户管理 | 用户登录 | POST | /api/user/login | 用户登录（支持密码登录和验证码登录） | 登录信息（通过请求体传递，包含email/phone、password/code、loginType） | 登录成功的用户信息 |
+| 用户管理 | 用户注册 | POST | /api/user/register | 用户注册 | 注册信息（通过请求体传递，包含email、phone、password、confirmPassword、code） | 注册成功的用户信息 |
+| 用户管理 | 发送验证码 | POST | /api/user/sendCode | 发送验证码（支持邮箱和手机号，用于登录、注册或忘记密码） | email: 邮箱（可选）<br>phone: 手机号（可选）<br>type: 用途类型（login/register/forgot） | 操作结果 |
+| 用户管理 | 验证验证码 | POST | /api/user/verifyCode | 验证验证码 | email: 邮箱（可选）<br>phone: 手机号（可选）<br>code: 验证码<br>type: 用途类型（login/register/forgot） | 验证结果 |
+| 用户管理 | 忘记密码 | POST | /api/user/forgotPassword | 忘记密码，重置密码 | email: 邮箱<br>code: 验证码<br>newPassword: 新密码<br>confirmPassword: 确认新密码 | 操作结果 |
+| 用户管理 | 检查邮箱是否已存在 | GET | /api/user/checkEmail | 检查邮箱是否已存在 | email: 邮箱 | 邮箱是否已存在 |
+| 用户管理 | 检查手机号是否已存在 | GET | /api/user/checkPhone | 检查手机号是否已存在 | phone: 手机号 | 手机号是否已存在 |
+| --- | --- | --- | --- | --- | --- | --- |
 | 设备管理 | 获取设备信息 | GET | /api/device/getDeviceInfo | 获取单个设备的详细信息 | deviceId: 设备唯一标识（通过请求参数传递） | 设备详细信息（Device 实体） |
 | 设备管理 | 设备控制 | POST | /api/device/controlDevice | 控制设备的开关状态 | deviceId: 设备唯一标识（通过请求参数传递）<br>isOn: 设备状态（true=开启, false=关闭） | 操作结果 |
 | 设备管理 | 修改精油名称 | POST | /api/device/updateOilName | 更新设备精油名称 | deviceId: 设备唯一标识（通过请求参数传递）<br>oilName: 新的精油名称 | 更新后的设备信息 |

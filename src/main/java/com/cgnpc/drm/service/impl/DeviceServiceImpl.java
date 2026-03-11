@@ -4,12 +4,15 @@ import com.cgnpc.drm.entity.Device;
 import com.cgnpc.drm.repository.DeviceRepository;
 import com.cgnpc.drm.service.DeviceService;
 import com.cgnpc.drm.service.MQTTService;
+import com.cgnpc.drm.service.MQTTMessageHandlerService;
 import com.cgnpc.drm.dto.DeviceControlDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
@@ -22,6 +25,9 @@ public class DeviceServiceImpl implements DeviceService {
     @Autowired
     private MQTTService mqttService;
 
+    @Autowired
+    private MQTTMessageHandlerService mqttMessageHandlerService;
+
     @Override
     public Device getDeviceInfo(String deviceId) {
         return deviceRepository.findByDeviceId(deviceId);
@@ -31,7 +37,7 @@ public class DeviceServiceImpl implements DeviceService {
     public Device controlDevice(String deviceId, DeviceControlDTO controlDTO) {
         Device device = deviceRepository.findByDeviceId(deviceId);
         if (device == null) {
-            throw new RuntimeException("设备不存在");
+            throw new RuntimeException("Device does not exist.");  // 设备不存在
         }
 
         if (controlDTO.getFanStatus() != null) {
@@ -73,7 +79,7 @@ public class DeviceServiceImpl implements DeviceService {
     public Device updateEssentialOilName(String deviceId, String oilName) {
         Device device = deviceRepository.findByDeviceId(deviceId);
         if (device == null) {
-            throw new RuntimeException("设备不存在");
+            throw new RuntimeException("Device does not exist.");  // 设备不存在
         }
 
         device.setEssentialOilName(oilName);
@@ -85,7 +91,7 @@ public class DeviceServiceImpl implements DeviceService {
     public Device updateEssentialOilLevel(String deviceId, Integer level) {
         Device device = deviceRepository.findByDeviceId(deviceId);
         if (device == null) {
-            throw new RuntimeException("设备不存在");
+            throw new RuntimeException("Device does not exist.");  // 设备不存在
         }
 
         device.setEssentialOilLevel(level);
@@ -97,7 +103,7 @@ public class DeviceServiceImpl implements DeviceService {
     public Device lockDevice(String deviceId, Boolean lockStatus) {
         Device device = deviceRepository.findByDeviceId(deviceId);
         if (device == null) {
-            throw new RuntimeException("设备不存在");
+            throw new RuntimeException("Device does not exist.");  // 设备不存在
         }
 
         device.setLockStatus(lockStatus);
@@ -111,7 +117,7 @@ public class DeviceServiceImpl implements DeviceService {
     public Device controlFan(String deviceId, Boolean status) {
         Device device = deviceRepository.findByDeviceId(deviceId);
         if (device == null) {
-            throw new RuntimeException("设备不存在");
+            throw new RuntimeException("Device does not exist.");  // 设备不存在
         }
 
         device.setFanStatus(status);
@@ -125,7 +131,7 @@ public class DeviceServiceImpl implements DeviceService {
     public Device setFanSpeed(String deviceId, Integer speed) {
         Device device = deviceRepository.findByDeviceId(deviceId);
         if (device == null) {
-            throw new RuntimeException("设备不存在");
+            throw new RuntimeException("Device does not exist.");  // 设备不存在
         }
 
         device.setFanSpeed(speed);
@@ -137,7 +143,7 @@ public class DeviceServiceImpl implements DeviceService {
     public Device controlDevicePower(String deviceId, Boolean status) {
         Device device = deviceRepository.findByDeviceId(deviceId);
         if (device == null) {
-            throw new RuntimeException("设备不存在");
+            throw new RuntimeException("Device does not exist.");  // 设备不存在
         }
 
         device.setDeviceStatus(status);
@@ -149,7 +155,7 @@ public class DeviceServiceImpl implements DeviceService {
     public Device controlLight(String deviceId, Boolean status) {
         Device device = deviceRepository.findByDeviceId(deviceId);
         if (device == null) {
-            throw new RuntimeException("设备不存在");
+            throw new RuntimeException("Device does not exist.");  // 设备不存在
         }
 
         device.setLightStatus(status);
@@ -191,7 +197,7 @@ public class DeviceServiceImpl implements DeviceService {
         }
         
         // 如果尝试多次仍失败，抛出异常
-        throw new RuntimeException("无法生成唯一设备ID，请稍后重试");
+        throw new RuntimeException("Unable to generate unique device ID, please try again later.");  // 无法生成唯一设备ID，请稍后重试
     }
 
     @Override
@@ -232,7 +238,7 @@ public class DeviceServiceImpl implements DeviceService {
     public boolean deleteDevice(String deviceId) {
         Device device = deviceRepository.findByDeviceId(deviceId);
         if (device == null) {
-            throw new RuntimeException("设备不存在");
+            throw new RuntimeException("Device does not exist.");  // 设备不存在
         }
         
         deviceRepository.delete(device);
@@ -242,5 +248,66 @@ public class DeviceServiceImpl implements DeviceService {
     @Override
     public List<Device> getAllDevices() {
         return deviceRepository.findAll();
+    }
+
+    @Override
+    public Device resetPumpUsageTime(String deviceId) {
+        // 调用MQTTMessageHandlerService重置气泵使用时间
+        mqttMessageHandlerService.resetPumpUsageTime(deviceId);
+        // 返回更新后的设备信息
+        return deviceRepository.findByDeviceId(deviceId);
+    }
+
+    @Override
+    public Map<String, Object> getDeviceStatusInfo(String deviceId) {
+        Device device = deviceRepository.findByDeviceId(deviceId);
+        if (device == null) {
+            throw new RuntimeException("Device does not exist.");  // 设备不存在
+        }
+
+        // 构建设备状态信息
+        Map<String, Object> statusInfo = new HashMap<>();
+        statusInfo.put("deviceId", device.getDeviceId());
+        statusInfo.put("deviceName", device.getDeviceName());
+        statusInfo.put("essentialOilName", device.getEssentialOilName());
+        statusInfo.put("essentialOilLevel", device.getEssentialOilLevel());
+        statusInfo.put("fanStatus", device.getFanStatus());
+        statusInfo.put("deviceStatus", device.getDeviceStatus());
+        statusInfo.put("lockStatus", device.getLockStatus());
+        statusInfo.put("lightStatus", device.getLightStatus());
+        statusInfo.put("fanSpeed", device.getFanSpeed());
+        statusInfo.put("currentModeId", device.getCurrentModeId());
+        statusInfo.put("pumpUsageTime", device.getPumpUsageTime());
+        statusInfo.put("devicePosture", device.getDevicePosture());
+        statusInfo.put("liquidLevel", device.getLiquidLevel());
+        statusInfo.put("oilLowAlert", device.getOilLowAlert());
+        statusInfo.put("pumpReplaceAlert", device.getPumpReplaceAlert());
+        statusInfo.put("lastPumpResetTime", device.getLastPumpResetTime());
+        statusInfo.put("updatedTime", device.getUpdatedTime());
+
+        // 添加状态描述
+        statusInfo.put("devicePostureDesc", device.getDevicePosture() == 0 ? "Upright" : "Tilted");  // 竖立 : 倾倒
+        statusInfo.put("liquidLevelDesc", getLiquidLevelDescription(device.getLiquidLevel()));
+
+        return statusInfo;
+    }
+
+    /**
+     * 获取液位描述
+     */
+    private String getLiquidLevelDescription(Integer liquidLevel) {
+        if (liquidLevel == null) {
+            return "Unknown";  // 未知
+        }
+        switch (liquidLevel) {
+            case 0:
+                return "Low";  // 低
+            case 1:
+                return "Medium";  // 中
+            case 2:
+                return "High";  // 高
+            default:
+                return "Unknown";  // 未知
+        }
     }
 }

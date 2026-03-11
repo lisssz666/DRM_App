@@ -36,6 +36,13 @@ public class MQTTService {
     public void sendCommand(String deviceId, String command) {
         String topic = TOPIC_PREFIX + deviceId + TOPIC_SUFFIX;
         try {
+            // 检查并确保MQTT客户端已连接
+            if (!mqttClient.isConnected()) {
+                logger.warn("MQTT客户端未连接，尝试重新连接，broker地址: {}", mqttBrokerUrl);
+                mqttClient.connect(mqttConnectOptions);
+                logger.info("MQTT客户端重新连接成功，broker地址: {}", mqttBrokerUrl);
+            }
+            
             MqttMessage message = new MqttMessage(command.getBytes());
             message.setQos(mqttQos);
             mqttClient.publish(topic, message);
