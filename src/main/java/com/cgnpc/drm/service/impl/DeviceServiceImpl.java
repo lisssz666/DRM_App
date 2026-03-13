@@ -1,10 +1,12 @@
 package com.cgnpc.drm.service.impl;
 
 import com.cgnpc.drm.entity.Device;
+import com.cgnpc.drm.entity.WorkingMode;
 import com.cgnpc.drm.repository.DeviceRepository;
 import com.cgnpc.drm.service.DeviceService;
 import com.cgnpc.drm.service.MQTTService;
 import com.cgnpc.drm.service.MQTTMessageHandlerService;
+import com.cgnpc.drm.service.WorkingModeService;
 import com.cgnpc.drm.dto.DeviceControlDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -28,6 +30,9 @@ public class DeviceServiceImpl implements DeviceService {
     @Autowired
     private MQTTMessageHandlerService mqttMessageHandlerService;
 
+    @Autowired
+    private WorkingModeService workingModeService;
+
     @Override
     public Device getDeviceInfo(String deviceId) {
         return deviceRepository.findByDeviceId(deviceId);
@@ -40,26 +45,29 @@ public class DeviceServiceImpl implements DeviceService {
             throw new RuntimeException("Device does not exist.");  // 设备不存在
         }
 
+        // 创建设备状态对象
+        MQTTService.DeviceStatus deviceStatus = new MQTTService.DeviceStatus();
+
+        // 更新设备状态并设置到deviceStatus
         if (controlDTO.getFanStatus() != null) {
             device.setFanStatus(controlDTO.getFanStatus());
-            // 发送风扇控制命令
-            mqttService.sendFanCommand(deviceId, controlDTO.getFanStatus() ? 1 : 0);
         }
         if (controlDTO.getDeviceStatus() != null) {
             device.setDeviceStatus(controlDTO.getDeviceStatus());
+            deviceStatus.setPowerStatus(controlDTO.getDeviceStatus());
         }
         if (controlDTO.getLockStatus() != null) {
             device.setLockStatus(controlDTO.getLockStatus());
-            // 发送锁定控制命令
-            mqttService.sendLockCommand(deviceId, controlDTO.getLockStatus() ? 1 : 0);
+            deviceStatus.setLockStatus(controlDTO.getLockStatus());
         }
         if (controlDTO.getLightStatus() != null) {
             device.setLightStatus(controlDTO.getLightStatus());
-            // 发送灯光控制命令
-            mqttService.sendLightCommand(deviceId, controlDTO.getLightStatus() ? 1 : 0);
+            // 假设灯光状态映射到工作状态
+            deviceStatus.setWorkStatus(controlDTO.getLightStatus() ? 1 : 0);
         }
         if (controlDTO.getFanSpeed() != null) {
             device.setFanSpeed(controlDTO.getFanSpeed());
+            deviceStatus.setFanSpeed(controlDTO.getFanSpeed());
         }
         if (controlDTO.getEssentialOilName() != null) {
             device.setEssentialOilName(controlDTO.getEssentialOilName());
@@ -70,6 +78,22 @@ public class DeviceServiceImpl implements DeviceService {
         if (controlDTO.getCurrentModeId() != null) {
             device.setCurrentModeId(controlDTO.getCurrentModeId());
         }
+        if (controlDTO.getLiquidLevel() != null) {
+            device.setLiquidLevel(controlDTO.getLiquidLevel());
+            deviceStatus.setLiquidLevel(controlDTO.getLiquidLevel());
+        }
+        if (controlDTO.getTimerStatus() != null) {
+            deviceStatus.setTimerStatus(controlDTO.getTimerStatus());
+        }
+        if (controlDTO.getChildLock() != null) {
+            deviceStatus.setChildLock(controlDTO.getChildLock());
+        }
+        if (controlDTO.getWorkStatus() != null) {
+            deviceStatus.setWorkStatus(controlDTO.getWorkStatus());
+        }
+
+        // 发送完整的控制命令
+        mqttService.sendCommand(deviceId, device.getDeviceId(), deviceStatus);
 
         device.setUpdatedTime(new Date());
         return deviceRepository.save(device);
@@ -108,7 +132,7 @@ public class DeviceServiceImpl implements DeviceService {
 
         device.setLockStatus(lockStatus);
         // 发送锁定控制命令
-        mqttService.sendLockCommand(deviceId, lockStatus ? 1 : 0);
+        mqttService.sendLockCommand(deviceId, device.getDeviceId(), lockStatus);
         device.setUpdatedTime(new Date());
         return deviceRepository.save(device);
     }
@@ -122,7 +146,7 @@ public class DeviceServiceImpl implements DeviceService {
 
         device.setFanStatus(status);
         // 发送风扇控制命令
-        mqttService.sendFanCommand(deviceId, status ? 1 : 0);
+        mqttService.sendFanCommand(deviceId, device.getDeviceId(), status ? 1 : 0);
         device.setUpdatedTime(new Date());
         return deviceRepository.save(device);
     }
@@ -160,7 +184,7 @@ public class DeviceServiceImpl implements DeviceService {
 
         device.setLightStatus(status);
         // 发送灯光控制命令
-        mqttService.sendLightCommand(deviceId, status ? 1 : 0);
+        mqttService.sendLightCommand(deviceId, device.getDeviceId(), status);
         device.setUpdatedTime(new Date());
         return deviceRepository.save(device);
     }
@@ -251,6 +275,17 @@ public class DeviceServiceImpl implements DeviceService {
     }
 
     @Override
+    public List<Device> getDevicesByUserId(Long userId) {
+        return deviceRepository.findByUserId(userId);
+    }
+
+    @Override
+    public boolean validateDeviceOwnership(String deviceId, Long userId) {
+        Device device = deviceRepository.findByDeviceId(deviceId);
+        return device != null && device.getUserId().equals(userId);
+    }
+
+    @Override
     public Device resetPumpUsageTime(String deviceId) {
         // 调用MQTTMessageHandlerService重置气泵使用时间
         mqttMessageHandlerService.resetPumpUsageTime(deviceId);
@@ -286,8 +321,12 @@ public class DeviceServiceImpl implements DeviceService {
         statusInfo.put("updatedTime", device.getUpdatedTime());
 
         // 添加状态描述
-        statusInfo.put("devicePostureDesc", device.getDevicePosture() == 0 ? "Upright" : "Tilted");  // 竖立 : 倾倒
+        statusInfo.put("devicePostureDesc", device.getDevicePosture() == null ? "Unknown" : (device.getDevicePosture() == 0 ? "Upright" : "Tilted"));  // 竖立 : 倾倒
         statusInfo.put("liquidLevelDesc", getLiquidLevelDescription(device.getLiquidLevel()));
+
+        // 添加启用的工作模式信息
+        List<WorkingMode> enabledModes = workingModeService.getEnabledWorkingModes(deviceId);
+        statusInfo.put("enabledWorkingModes", enabledModes);
 
         return statusInfo;
     }

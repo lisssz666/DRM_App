@@ -55,7 +55,9 @@ public class MQTTConfig {
                     // 订阅设备状态主题
                     try {
                         client.subscribe("spray/+/status", qos);
-                        logger.info("已订阅设备状态主题: spray/+/status");
+                        client.subscribe("spray/+/ctr", qos);
+                        client.subscribe("spray/+/heart", qos);
+                        logger.info("已订阅设备主题: spray/+/status, spray/+/ctr, spray/+/heart");
                     } catch (MqttException e) {
                         logger.error("订阅主题失败: {}", e.getMessage());
                     }

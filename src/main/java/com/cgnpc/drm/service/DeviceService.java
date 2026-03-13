@@ -98,6 +98,21 @@ public interface DeviceService {
     List<Device> getAllDevices();
 
     /**
+     * 根据用户ID获取设备列表
+     * @param userId 用户ID
+     * @return 设备列表
+     */
+    List<Device> getDevicesByUserId(Long userId);
+
+    /**
+     * 验证设备是否属于指定用户
+     * @param deviceId 设备ID
+     * @param userId 用户ID
+     * @return 验证结果
+     */
+    boolean validateDeviceOwnership(String deviceId, Long userId);
+
+    /**
      * 重置气泵使用时间
      * @param deviceId 设备ID
      * @return 更新后的设备信息

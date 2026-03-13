@@ -18,6 +18,9 @@ public class Device {
     @Column(name = "device_name")
     private String deviceName; // 设备名称
 
+    @Column(name = "user_id", nullable = false)
+    private Long userId; // 关联的用户ID
+
     @Column(name = "essential_oil_name")
     private String essentialOilName; // 精油名称
 

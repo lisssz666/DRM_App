@@ -43,4 +43,24 @@ public class DeviceControlDTO {
      * 当前工作模式ID
      */
     private Long currentModeId;
+    
+    /**
+     * 液位状态：0-低，1-中，2-高
+     */
+    private Integer liquidLevel;
+    
+    /**
+     * 定时状态：0-关闭，1-开启
+     */
+    private Integer timerStatus;
+    
+    /**
+     * 童锁状态：true-开启，false-关闭
+     */
+    private Boolean childLock;
+    
+    /**
+     * 工作状态：0-停止，1-运行
+     */
+    private Integer workStatus;
 }

@@ -4,6 +4,8 @@ import com.cgnpc.drm.entity.Device;
 import com.cgnpc.drm.service.DeviceService;
 import com.cgnpc.drm.dto.DeviceControlDTO;
 import com.cgnpc.drm.vo.ResponseVO;
+import com.cgnpc.drm.util.JwtUtil;
+import com.cgnpc.drm.service.UserService;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -11,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import javax.servlet.http.HttpServletRequest;
 
 @RestController
 @RequestMapping("/api/device")
@@ -21,14 +24,46 @@ public class DeviceController {
     @Autowired
     private DeviceService deviceService;
 
+    @Autowired
+    private JwtUtil jwtUtil;
+
+    @Autowired
+    private UserService userService;
+
+    /**
+     * 获取当前登录用户的ID
+     */
+    private Long getCurrentUserId(HttpServletRequest request) {
+        String token = request.getHeader("Authorization");
+        if (token != null && token.startsWith("Bearer ")) {
+            token = token.substring(7);
+            // 从token中提取用户名（邮箱或手机号）
+            String username = jwtUtil.extractUsername(token);
+            // 根据用户名获取用户对象（先尝试邮箱，再尝试手机号）
+            com.cgnpc.drm.entity.User user = null;
+            if (username.contains("@")) {
+                // 邮箱登录
+                user = userService.findByEmail(username);
+            } else {
+                // 手机号登录
+                user = userService.findByPhone(username);
+            }
+            if (user != null) {
+                return user.getId();
+            }
+        }
+        throw new RuntimeException("User not logged in");
+    }
+
       
     /**
      * 获取设备列表
      * GET /api/device/getDeviceList
      */
     @GetMapping("/getDeviceList")
-    public ResponseVO<List<Device>> getDeviceList() {
-        List<Device> deviceList = deviceService.getAllDevices();
+    public ResponseVO<List<Device>> getDeviceList(HttpServletRequest request) {
+        Long userId = getCurrentUserId(request);
+        List<Device> deviceList = deviceService.getDevicesByUserId(userId);
         return ResponseVO.success("获取设备列表成功", deviceList);
     }
 
@@ -38,7 +73,11 @@ public class DeviceController {
      * GET /api/device/getDeviceInfo
      */
     @GetMapping("/getDeviceInfo")
-    public ResponseVO<Device> getDeviceInfo(@RequestParam String deviceId) {
+    public ResponseVO<Device> getDeviceInfo(@RequestParam String deviceId, HttpServletRequest request) {
+        Long userId = getCurrentUserId(request);
+        if (!deviceService.validateDeviceOwnership(deviceId, userId)) {
+            return ResponseVO.error(403, "You don't have permission to access this device");
+        }
         Device device = deviceService.getDeviceInfo(deviceId);
         return ResponseVO.success("获取设备信息成功", device);
     }
@@ -50,7 +89,12 @@ public class DeviceController {
     @PostMapping("/controlDevice")
     public ResponseVO<Device> controlDevice(
             @RequestParam String deviceId,
-            DeviceControlDTO controlDTO) {
+            DeviceControlDTO controlDTO,
+            HttpServletRequest request) {
+        Long userId = getCurrentUserId(request);
+        if (!deviceService.validateDeviceOwnership(deviceId, userId)) {
+            return ResponseVO.error(403, "You don't have permission to control this device");
+        }
         Device device = deviceService.controlDevice(deviceId, controlDTO);
         return ResponseVO.success("设备控制成功", device);
     }
@@ -62,7 +106,12 @@ public class DeviceController {
     @PutMapping("/updateOilName")
     public ResponseVO<Device> updateOilName(
             @RequestParam String deviceId,
-            @RequestParam String oilName) {
+            @RequestParam String oilName,
+            HttpServletRequest request) {
+        Long userId = getCurrentUserId(request);
+        if (!deviceService.validateDeviceOwnership(deviceId, userId)) {
+            return ResponseVO.error(403, "You don't have permission to update this device");
+        }
         Device device = deviceService.updateEssentialOilName(deviceId, oilName);
         return ResponseVO.success("精油名称更新成功", device);
     }
@@ -72,13 +121,17 @@ public class DeviceController {
      * POST /api/device/addDevice
      */
     @PostMapping("/addDevice")
-    public ResponseVO<Device> addDevice(@RequestParam Map<String, String> params) {
+    public ResponseVO<Device> addDevice(@RequestParam Map<String, String> params, HttpServletRequest request) {
         // 打印接收到的参数
         logger.info("接收到新增设备请求，参数: {}", params);
         
         Device device = new Device();
         device.setDeviceName(params.get("deviceName"));
         device.setEssentialOilName(params.get("essentialOilName"));
+        
+        // 设置用户ID
+        Long userId = getCurrentUserId(request);
+        device.setUserId(userId);
         
         // 处理整数类型参数 - 使用Optional简化代码
         device.setEssentialOilLevel(Optional.ofNullable(params.get("essentialOilLevel")).map(Integer::parseInt).orElse(null));
@@ -104,8 +157,12 @@ public class DeviceController {
     }
     
     @DeleteMapping("/deleteDevice")
-    public ResponseVO deleteDevice(@RequestParam String deviceId) {
+    public ResponseVO deleteDevice(@RequestParam String deviceId, HttpServletRequest request) {
         try {
+            Long userId = getCurrentUserId(request);
+            if (!deviceService.validateDeviceOwnership(deviceId, userId)) {
+                return ResponseVO.error(403, "You don't have permission to delete this device");
+            }
             deviceService.deleteDevice(deviceId);
             return ResponseVO.success("删除设备成功");
         } catch (Exception e) {
@@ -121,7 +178,12 @@ public class DeviceController {
     @PutMapping("/updateOilLevel")
     public ResponseVO<Device> updateOilLevel(
             @RequestParam String deviceId,
-            @RequestParam Integer level) {
+            @RequestParam Integer level,
+            HttpServletRequest request) {
+        Long userId = getCurrentUserId(request);
+        if (!deviceService.validateDeviceOwnership(deviceId, userId)) {
+            return ResponseVO.error(403, "You don't have permission to update this device");
+        }
         Device device = deviceService.updateEssentialOilLevel(deviceId, level);
         return ResponseVO.success("精油量更新成功", device);
     }
@@ -133,7 +195,12 @@ public class DeviceController {
     @PutMapping("/lockDevice")
     public ResponseVO<Device> lockDevice(
             @RequestParam String deviceId,
-            @RequestParam Boolean lockStatus) {
+            @RequestParam Boolean lockStatus,
+            HttpServletRequest request) {
+        Long userId = getCurrentUserId(request);
+        if (!deviceService.validateDeviceOwnership(deviceId, userId)) {
+            return ResponseVO.error(403, "You don't have permission to control this device");
+        }
         Device device = deviceService.lockDevice(deviceId, lockStatus);
         String message = lockStatus ? "设备锁定成功" : "设备解锁成功";
         return ResponseVO.success(message, device);
@@ -146,7 +213,12 @@ public class DeviceController {
     @PutMapping("/controlFan")
     public ResponseVO<Device> controlFan(
             @RequestParam String deviceId,
-            @RequestParam Boolean status) {
+            @RequestParam Boolean status,
+            HttpServletRequest request) {
+        Long userId = getCurrentUserId(request);
+        if (!deviceService.validateDeviceOwnership(deviceId, userId)) {
+            return ResponseVO.error(403, "You don't have permission to control this device");
+        }
         Device device = deviceService.controlFan(deviceId, status);
         String message = status ? "风扇开启成功" : "风扇关闭成功";
         return ResponseVO.success(message, device);
@@ -159,7 +231,12 @@ public class DeviceController {
     @PutMapping("/setFanSpeed")
     public ResponseVO<Device> setFanSpeed(
             @RequestParam String deviceId,
-            @RequestParam Integer speed) {
+            @RequestParam Integer speed,
+            HttpServletRequest request) {
+        Long userId = getCurrentUserId(request);
+        if (!deviceService.validateDeviceOwnership(deviceId, userId)) {
+            return ResponseVO.error(403, "You don't have permission to control this device");
+        }
         Device device = deviceService.setFanSpeed(deviceId, speed);
         return ResponseVO.success("风扇速度设置成功", device);
     }
@@ -171,7 +248,12 @@ public class DeviceController {
     @PutMapping("/controlDevicePower")
     public ResponseVO<Device> controlDevicePower(
             @RequestParam String deviceId,
-            @RequestParam Boolean status) {
+            @RequestParam Boolean status,
+            HttpServletRequest request) {
+        Long userId = getCurrentUserId(request);
+        if (!deviceService.validateDeviceOwnership(deviceId, userId)) {
+            return ResponseVO.error(403, "You don't have permission to control this device");
+        }
         Device device = deviceService.controlDevicePower(deviceId, status);
         String message = status ? "设备开启成功" : "设备关闭成功";
         return ResponseVO.success(message, device);
@@ -184,7 +266,12 @@ public class DeviceController {
     @PutMapping("/controlLight")
     public ResponseVO<Device> controlLight(
             @RequestParam String deviceId,
-            @RequestParam Boolean status) {
+            @RequestParam Boolean status,
+            HttpServletRequest request) {
+        Long userId = getCurrentUserId(request);
+        if (!deviceService.validateDeviceOwnership(deviceId, userId)) {
+            return ResponseVO.error(403, "You don't have permission to control this device");
+        }
         Device device = deviceService.controlLight(deviceId, status);
         String message = status ? "灯光开启成功" : "灯光关闭成功";
         return ResponseVO.success(message, device);
@@ -195,7 +282,11 @@ public class DeviceController {
      * PUT /api/device/resetPumpUsageTime
      */
     @PutMapping("/resetPumpUsageTime")
-    public ResponseVO<Device> resetPumpUsageTime(@RequestParam String deviceId) {
+    public ResponseVO<Device> resetPumpUsageTime(@RequestParam String deviceId, HttpServletRequest request) {
+        Long userId = getCurrentUserId(request);
+        if (!deviceService.validateDeviceOwnership(deviceId, userId)) {
+            return ResponseVO.error(403, "You don't have permission to update this device");
+        }
         Device device = deviceService.resetPumpUsageTime(deviceId);
         return ResponseVO.success("气泵使用时间重置成功", device);
     }
@@ -205,7 +296,11 @@ public class DeviceController {
      * GET /api/device/getDeviceStatusInfo
      */
     @GetMapping("/getDeviceStatusInfo")
-    public ResponseVO<Map<String, Object>> getDeviceStatusInfo(@RequestParam String deviceId) {
+    public ResponseVO<Map<String, Object>> getDeviceStatusInfo(@RequestParam String deviceId, HttpServletRequest request) {
+        Long userId = getCurrentUserId(request);
+        if (!deviceService.validateDeviceOwnership(deviceId, userId)) {
+            return ResponseVO.error(403, "You don't have permission to access this device");
+        }
         Map<String, Object> statusInfo = deviceService.getDeviceStatusInfo(deviceId);
         return ResponseVO.success("获取设备状态信息成功", statusInfo);
     }
