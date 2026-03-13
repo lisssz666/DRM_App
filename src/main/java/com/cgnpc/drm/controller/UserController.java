@@ -54,6 +54,9 @@ public class UserController {
             String username = user.getEmail() != null ? user.getEmail() : user.getPhone();
             String token = jwtUtil.generateToken(username);
             
+            // 清除密码，确保不返回给前端
+            user.setPassword(null);
+            
             // 返回用户信息和 token
             Map<String, Object> data = new HashMap<>();
             data.put("user", user);
@@ -79,6 +82,8 @@ public class UserController {
             registerDTO.setCode(params.get("code"));
             
             User user = userService.register(registerDTO);
+            // 清除密码，确保不返回给前端
+            user.setPassword(null);
             return ResponseVO.success("注册成功", user);
         } catch (Exception e) {
             return ResponseVO.error(500, e.getMessage());
