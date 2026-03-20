@@ -165,6 +165,7 @@ public class UserController {
         try {
             ForgotPasswordDTO forgotPasswordDTO = new ForgotPasswordDTO();
             forgotPasswordDTO.setEmail(params.get("email"));
+            forgotPasswordDTO.setPhone(params.get("phone"));
             forgotPasswordDTO.setCode(params.get("code"));
             forgotPasswordDTO.setNewPassword(params.get("newPassword"));
             forgotPasswordDTO.setConfirmPassword(params.get("confirmPassword"));

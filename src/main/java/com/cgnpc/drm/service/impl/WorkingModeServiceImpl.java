@@ -54,8 +54,31 @@ public class WorkingModeServiceImpl implements WorkingModeService {
     @Override
     public WorkingMode updateWorkingMode(Long id, WorkingModeDTO workingModeDTO) {
         WorkingMode workingMode = workingModeRepository.findById(id).orElseThrow(() -> new RuntimeException("工作模式不存在"));
-        BeanUtils.copyProperties(workingModeDTO, workingMode);
-        workingMode.setId(id);
+        // 只更新不为null的字段
+        if (workingModeDTO.getModeName() != null) {
+            workingMode.setModeName(workingModeDTO.getModeName());
+        }
+        if (workingModeDTO.getWeekDays() != null) {
+            workingMode.setWeekDays(workingModeDTO.getWeekDays());
+        }
+        if (workingModeDTO.getStartTime() != null) {
+            workingMode.setStartTime(workingModeDTO.getStartTime());
+        }
+        if (workingModeDTO.getEndTime() != null) {
+            workingMode.setEndTime(workingModeDTO.getEndTime());
+        }
+        if (workingModeDTO.getRunTime() != null) {
+            workingMode.setRunTime(workingModeDTO.getRunTime());
+        }
+        if (workingModeDTO.getStopTime() != null) {
+            workingMode.setStopTime(workingModeDTO.getStopTime());
+        }
+        if (workingModeDTO.getIsDefault() != null) {
+            workingMode.setIsDefault(workingModeDTO.getIsDefault());
+        }
+        if (workingModeDTO.getStatus() != null) {
+            workingMode.setStatus(workingModeDTO.getStatus());
+        }
         workingMode.setUpdatedTime(new Date());
         return workingModeRepository.save(workingMode);
     }

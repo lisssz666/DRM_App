@@ -31,6 +31,23 @@ public class DeviceController {
     private UserService userService;
 
     /**
+     * 生成设备型号：大写字母+3个随机数字
+     */
+    private String generateDeviceModel() {
+        // 生成3个大写字母
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < 3; i++) {
+            char c = (char) (65 + (int) (Math.random() * 26)); // 65是'A'的ASCII码
+            sb.append(c);
+        }
+        // 生成3个随机数字
+        for (int i = 0; i < 3; i++) {
+            sb.append((int) (Math.random() * 10));
+        }
+        return sb.toString();
+    }
+
+    /**
      * 获取当前登录用户的ID
      */
     private Long getCurrentUserId(HttpServletRequest request) {
@@ -128,6 +145,10 @@ public class DeviceController {
         Device device = new Device();
         device.setDeviceName(params.get("deviceName"));
         device.setEssentialOilName(params.get("essentialOilName"));
+        
+        // 生成设备型号：大写字母+3个随机数字
+        String model = generateDeviceModel();
+        device.setModel(model);
         
         // 设置用户ID
         Long userId = getCurrentUserId(request);

@@ -2,6 +2,7 @@ package com.cgnpc.drm.entity;
 
 import lombok.Data;
 import javax.persistence.*;
+import org.hibernate.annotations.Index;
 import java.util.Date;
 
 @Data
@@ -13,10 +14,14 @@ public class Device {
     private Long id;
 
     @Column(name = "device_id", unique = true, nullable = false)
+    @Index(name = "idx_device_id")
     private String deviceId; // 设备ID（如P205）
 
-    @Column(name = "device_name")
+    @Column(name = "device_name", nullable = false)
     private String deviceName; // 设备名称
+
+    @Column(name = "model", unique = true, nullable = false)
+    private String model; // 设备型号，格式：大写字母+3个随机数字
 
     @Column(name = "user_id", nullable = false)
     private Long userId; // 关联的用户ID

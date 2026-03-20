@@ -2,6 +2,7 @@ package com.cgnpc.drm.entity;
 
 import lombok.Data;
 import javax.persistence.*;
+import org.hibernate.annotations.Index;
 import java.util.Date;
 
 @Data
@@ -13,6 +14,7 @@ public class WorkingMode {
     private Long id;
 
     @Column(name = "device_id", nullable = false)
+    @Index(name = "idx_working_mode_device_id")
     private String deviceId; // 关联的设备ID
 
     @Column(name = "mode_name")
@@ -37,6 +39,7 @@ public class WorkingMode {
     private Boolean isDefault; // 是否为默认模式
 
     @Column(name = "status")
+    @Index(name = "idx_working_mode_status")
     private Boolean status; // 模式启用状态
 
     @Column(name = "created_time")

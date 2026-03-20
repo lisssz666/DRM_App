@@ -295,15 +295,19 @@ public class DeviceServiceImpl implements DeviceService {
 
     @Override
     public Map<String, Object> getDeviceStatusInfo(String deviceId) {
+        // 使用Optional避免空指针异常
         Device device = deviceRepository.findByDeviceId(deviceId);
         if (device == null) {
             throw new RuntimeException("Device does not exist.");  // 设备不存在
         }
 
+        // 使用LinkedHashMap保持插入顺序，提高可读性
+        Map<String, Object> statusInfo = new java.util.LinkedHashMap<>();
+        
         // 构建设备状态信息
-        Map<String, Object> statusInfo = new HashMap<>();
         statusInfo.put("deviceId", device.getDeviceId());
         statusInfo.put("deviceName", device.getDeviceName());
+        statusInfo.put("model", device.getModel()); // 设备型号
         statusInfo.put("essentialOilName", device.getEssentialOilName());
         statusInfo.put("essentialOilLevel", device.getEssentialOilLevel());
         statusInfo.put("fanStatus", device.getFanStatus());
@@ -326,6 +330,23 @@ public class DeviceServiceImpl implements DeviceService {
 
         // 添加启用的工作模式信息
         List<WorkingMode> enabledModes = workingModeService.getEnabledWorkingModes(deviceId);
+        
+        // 如果没有启用的工作模式，初始化默认模式
+        if (enabledModes == null || enabledModes.isEmpty()) {
+            WorkingMode defaultMode = new WorkingMode();
+            defaultMode.setDeviceId(deviceId);
+            defaultMode.setModeName("默认模式");
+            defaultMode.setWeekDays("1,2,3,4,5"); // 周一~周五
+            defaultMode.setStartTime("00:00");
+            defaultMode.setEndTime("23:59");
+            defaultMode.setRunTime(15); // 工作15秒
+            defaultMode.setStopTime(120); // 暂停120秒
+            defaultMode.setIsDefault(true);
+            defaultMode.setStatus(true);
+            enabledModes = new java.util.ArrayList<>(1); // 预分配容量
+            enabledModes.add(defaultMode);
+        }
+        
         statusInfo.put("enabledWorkingModes", enabledModes);
 
         return statusInfo;

@@ -39,7 +39,7 @@ public class MQTTService {
         try {
             // 检查并确保MQTT客户端已连接
             if (!mqttClient.isConnected()) {
-                logger.warn("MQTT客户端未连接，尝试重新连接，broker地址: {}", mqttBrokerUrl);
+                logger.warn("MQTT客户端未连接，尝试重新连接，b roker地址: {}", mqttBrokerUrl);
                 mqttClient.connect(mqttConnectOptions);
                 logger.info("MQTT客户端重新连接成功，broker地址: {}", mqttBrokerUrl);
             }

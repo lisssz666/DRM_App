@@ -221,12 +221,27 @@ public class UserServiceImpl implements UserService {
         }
 
         // 查找用户
-        User user = userRepository.findByEmail(forgotPasswordDTO.getEmail())
-                .orElseThrow(() -> new RuntimeException("This’s not registered account."));  // 该用户未注册
-
-        // 验证验证码
-        if (!verificationCodeService.verifyCode(forgotPasswordDTO.getEmail(), forgotPasswordDTO.getCode(), "forgot")) {
-            throw new RuntimeException("Verification code is incorrect or has expired.");  // 验证码错误或已过期
+        User user = null;
+        if (forgotPasswordDTO.getEmail() != null && !forgotPasswordDTO.getEmail().isEmpty()) {
+            // 邮箱找回
+            user = userRepository.findByEmail(forgotPasswordDTO.getEmail())
+                    .orElseThrow(() -> new RuntimeException("This’s not registered account."));  // 该用户未注册
+            
+            // 验证验证码
+            if (!verificationCodeService.verifyCode(forgotPasswordDTO.getEmail(), forgotPasswordDTO.getCode(), "forgot")) {
+                throw new RuntimeException("Verification code is incorrect or has expired.");  // 验证码错误或已过期
+            }
+        } else if (forgotPasswordDTO.getPhone() != null && !forgotPasswordDTO.getPhone().isEmpty()) {
+            // 手机号找回
+            user = userRepository.findByPhone(forgotPasswordDTO.getPhone())
+                    .orElseThrow(() -> new RuntimeException("This’s not registered account."));  // 该用户未注册
+            
+            // 验证验证码
+            if (!verificationCodeService.verifyCode(forgotPasswordDTO.getPhone(), forgotPasswordDTO.getCode(), "forgot")) {
+                throw new RuntimeException("Verification code is incorrect or has expired.");  // 验证码错误或已过期
+            }
+        } else {
+            throw new RuntimeException("Email or phone number cannot be empty.");  // 邮箱或手机号不能为空
         }
 
         // 更新密码
