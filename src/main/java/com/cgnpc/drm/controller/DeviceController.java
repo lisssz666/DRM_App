@@ -313,6 +313,24 @@ public class DeviceController {
     }
 
     /**
+     * 设备恢复出厂设置
+     * POST /api/device/resetDevice
+     */
+    @PostMapping("/resetDevice")
+    public ResponseVO<Device> resetDevice(@RequestParam String deviceId, HttpServletRequest request) {
+        Long userId = getCurrentUserId(request);
+        if (!deviceService.validateDeviceOwnership(deviceId, userId)) {
+            return ResponseVO.error(403, "You don't have permission to reset this device");
+        }
+        try {
+            Device device = deviceService.resetDeviceToFactorySettings(deviceId);
+            return ResponseVO.success("设备恢复出厂设置成功", device);
+        } catch (Exception e) {
+            return ResponseVO.error(500, "设备恢复出厂设置失败: " + e.getMessage());
+        }
+    }
+
+    /**
      * 获取设备状态信息
      * GET /api/device/getDeviceStatusInfo
      */

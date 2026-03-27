@@ -113,6 +113,13 @@ public interface DeviceService {
     boolean validateDeviceOwnership(String deviceId, Long userId);
 
     /**
+     * 设备恢复出厂设置
+     * @param deviceId 设备ID
+     * @return 恢复后的设备信息
+     */
+    Device resetDeviceToFactorySettings(String deviceId);
+
+    /**
      * 重置气泵使用时间
      * @param deviceId 设备ID
      * @return 更新后的设备信息

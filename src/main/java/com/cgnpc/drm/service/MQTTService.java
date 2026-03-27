@@ -35,7 +35,7 @@ public class MQTTService {
      * @param deviceStatus 设备状态信息
      */
     public void sendCommand(String deviceId, String deviceNumber, DeviceStatus deviceStatus) {
-        String topic = TOPIC_PREFIX + deviceId + TOPIC_SUFFIX;
+        String topic = TOPIC_PREFIX + "abcd123" + TOPIC_SUFFIX;
         try {
             // 检查并确保MQTT客户端已连接
             if (!mqttClient.isConnected()) {

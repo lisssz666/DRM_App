@@ -286,6 +286,47 @@ public class DeviceServiceImpl implements DeviceService {
     }
 
     @Override
+    public Device resetDeviceToFactorySettings(String deviceId) {
+        Device device = deviceRepository.findByDeviceId(deviceId);
+        if (device == null) {
+            throw new RuntimeException("Device does not exist.");  // 设备不存在
+        }
+
+        // 重置设备设置为默认值
+        device.setEssentialOilName(null);
+        device.setEssentialOilLevel(null);
+        device.setFanSpeed(0);
+        device.setFanStatus(false);
+        device.setDeviceStatus(false);
+        device.setLockStatus(false);
+        device.setLightStatus(false);
+        device.setCurrentModeId(null);
+        device.setPumpUsageTime(0);
+        device.setDevicePosture(null);
+        device.setLiquidLevel(0);
+        device.setOilLowAlert(false);
+        device.setPumpReplaceAlert(false);
+        device.setLastPumpResetTime(null);
+        device.setUpdatedTime(new Date());
+
+        // 保存设备信息
+        device = deviceRepository.save(device);
+
+        // 发送MQTT命令通知设备恢复出厂设置
+        MQTTService.DeviceStatus deviceStatus = new MQTTService.DeviceStatus();
+        deviceStatus.setPowerStatus(false);
+        deviceStatus.setFanSpeed(0);
+        deviceStatus.setLockStatus(false);
+        deviceStatus.setLiquidLevel(0);
+        deviceStatus.setTimerStatus(0);
+        deviceStatus.setChildLock(false);
+        deviceStatus.setWorkStatus(0);
+        mqttService.sendCommand(deviceId, device.getDeviceId(), deviceStatus);
+
+        return device;
+    }
+
+    @Override
     public Device resetPumpUsageTime(String deviceId) {
         // 调用MQTTMessageHandlerService重置气泵使用时间
         mqttMessageHandlerService.resetPumpUsageTime(deviceId);
