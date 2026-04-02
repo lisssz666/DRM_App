@@ -117,20 +117,25 @@ public class DeviceController {
     }
 
     /**
-     * 修改精油名称
-     * PUT /api/device/updateOilName
+     * 更新设备基本信息（设备名称、精油名称）
+     * PUT /api/device/updateDeviceInfo
      */
-    @PutMapping("/updateOilName")
-    public ResponseVO<Device> updateOilName(
+    @PutMapping("/updateDeviceInfo")
+    public ResponseVO<Device> updateDeviceInfo(
             @RequestParam String deviceId,
-            @RequestParam String oilName,
+            @RequestParam(required = false) String deviceName,
+            @RequestParam(required = false) String essentialOilName,
             HttpServletRequest request) {
         Long userId = getCurrentUserId(request);
         if (!deviceService.validateDeviceOwnership(deviceId, userId)) {
             return ResponseVO.error(403, "You don't have permission to update this device");
         }
-        Device device = deviceService.updateEssentialOilName(deviceId, oilName);
-        return ResponseVO.success("精油名称更新成功", device);
+        try {
+            Device device = deviceService.updateDeviceInfo(deviceId, deviceName, essentialOilName);
+            return ResponseVO.success("设备信息更新成功", device);
+        } catch (Exception e) {
+            return ResponseVO.error(500, "设备信息更新失败: " + e.getMessage());
+        }
     }
 
     /**
@@ -189,127 +194,6 @@ public class DeviceController {
         } catch (Exception e) {
             return ResponseVO.error("删除设备失败: " + e.getMessage());
         }
-    }
-
-    // ==============单个控制代码==============
-    /**
-     * 更新精油量
-     * PUT /api/device/updateOilLevel
-     */
-    @PutMapping("/updateOilLevel")
-    public ResponseVO<Device> updateOilLevel(
-            @RequestParam String deviceId,
-            @RequestParam Integer level,
-            HttpServletRequest request) {
-        Long userId = getCurrentUserId(request);
-        if (!deviceService.validateDeviceOwnership(deviceId, userId)) {
-            return ResponseVO.error(403, "You don't have permission to update this device");
-        }
-        Device device = deviceService.updateEssentialOilLevel(deviceId, level);
-        return ResponseVO.success("精油量更新成功", device);
-    }
-
-    /**
-     * 锁定/解锁设备
-     * PUT /api/device/lockDevice
-     */
-    @PutMapping("/lockDevice")
-    public ResponseVO<Device> lockDevice(
-            @RequestParam String deviceId,
-            @RequestParam Boolean lockStatus,
-            HttpServletRequest request) {
-        Long userId = getCurrentUserId(request);
-        if (!deviceService.validateDeviceOwnership(deviceId, userId)) {
-            return ResponseVO.error(403, "You don't have permission to control this device");
-        }
-        Device device = deviceService.lockDevice(deviceId, lockStatus);
-        String message = lockStatus ? "设备锁定成功" : "设备解锁成功";
-        return ResponseVO.success(message, device);
-    }
-
-    /**
-     * 控制风扇开关
-     * PUT /api/device/controlFan
-     */
-    @PutMapping("/controlFan")
-    public ResponseVO<Device> controlFan(
-            @RequestParam String deviceId,
-            @RequestParam Boolean status,
-            HttpServletRequest request) {
-        Long userId = getCurrentUserId(request);
-        if (!deviceService.validateDeviceOwnership(deviceId, userId)) {
-            return ResponseVO.error(403, "You don't have permission to control this device");
-        }
-        Device device = deviceService.controlFan(deviceId, status);
-        String message = status ? "风扇开启成功" : "风扇关闭成功";
-        return ResponseVO.success(message, device);
-    }
-
-    /**
-     * 设置风扇速度
-     * PUT /api/device/setFanSpeed
-     */
-    @PutMapping("/setFanSpeed")
-    public ResponseVO<Device> setFanSpeed(
-            @RequestParam String deviceId,
-            @RequestParam Integer speed,
-            HttpServletRequest request) {
-        Long userId = getCurrentUserId(request);
-        if (!deviceService.validateDeviceOwnership(deviceId, userId)) {
-            return ResponseVO.error(403, "You don't have permission to control this device");
-        }
-        Device device = deviceService.setFanSpeed(deviceId, speed);
-        return ResponseVO.success("风扇速度设置成功", device);
-    }
-
-    /**
-     * 控制设备开关
-     * PUT /api/device/controlDevicePower
-     */
-    @PutMapping("/controlDevicePower")
-    public ResponseVO<Device> controlDevicePower(
-            @RequestParam String deviceId,
-            @RequestParam Boolean status,
-            HttpServletRequest request) {
-        Long userId = getCurrentUserId(request);
-        if (!deviceService.validateDeviceOwnership(deviceId, userId)) {
-            return ResponseVO.error(403, "You don't have permission to control this device");
-        }
-        Device device = deviceService.controlDevicePower(deviceId, status);
-        String message = status ? "设备开启成功" : "设备关闭成功";
-        return ResponseVO.success(message, device);
-    }
-
-    /**
-     * 控制灯光开关
-     * PUT /api/device/controlLight
-     */
-    @PutMapping("/controlLight")
-    public ResponseVO<Device> controlLight(
-            @RequestParam String deviceId,
-            @RequestParam Boolean status,
-            HttpServletRequest request) {
-        Long userId = getCurrentUserId(request);
-        if (!deviceService.validateDeviceOwnership(deviceId, userId)) {
-            return ResponseVO.error(403, "You don't have permission to control this device");
-        }
-        Device device = deviceService.controlLight(deviceId, status);
-        String message = status ? "灯光开启成功" : "灯光关闭成功";
-        return ResponseVO.success(message, device);
-    }
-
-    /**
-     * 重置气泵使用时间
-     * PUT /api/device/resetPumpUsageTime
-     */
-    @PutMapping("/resetPumpUsageTime")
-    public ResponseVO<Device> resetPumpUsageTime(@RequestParam String deviceId, HttpServletRequest request) {
-        Long userId = getCurrentUserId(request);
-        if (!deviceService.validateDeviceOwnership(deviceId, userId)) {
-            return ResponseVO.error(403, "You don't have permission to update this device");
-        }
-        Device device = deviceService.resetPumpUsageTime(deviceId);
-        return ResponseVO.success("气泵使用时间重置成功", device);
     }
 
     /**

@@ -100,94 +100,26 @@ public class DeviceServiceImpl implements DeviceService {
     }
 
     @Override
-    public Device updateEssentialOilName(String deviceId, String oilName) {
+    public Device updateDeviceInfo(String deviceId, String deviceName, String essentialOilName) {
         Device device = deviceRepository.findByDeviceId(deviceId);
         if (device == null) {
             throw new RuntimeException("Device does not exist.");  // 设备不存在
         }
 
-        device.setEssentialOilName(oilName);
-        device.setUpdatedTime(new Date());
-        return deviceRepository.save(device);
-    }
-
-    @Override
-    public Device updateEssentialOilLevel(String deviceId, Integer level) {
-        Device device = deviceRepository.findByDeviceId(deviceId);
-        if (device == null) {
-            throw new RuntimeException("Device does not exist.");  // 设备不存在
+        // 更新设备名称（如果提供）
+        if (deviceName != null && !deviceName.isEmpty()) {
+            device.setDeviceName(deviceName);
         }
-
-        device.setEssentialOilLevel(level);
-        device.setUpdatedTime(new Date());
-        return deviceRepository.save(device);
-    }
-
-    @Override
-    public Device lockDevice(String deviceId, Boolean lockStatus) {
-        Device device = deviceRepository.findByDeviceId(deviceId);
-        if (device == null) {
-            throw new RuntimeException("Device does not exist.");  // 设备不存在
+        
+        // 更新精油名称（如果提供）
+        if (essentialOilName != null) {
+            device.setEssentialOilName(essentialOilName);
         }
-
-        device.setLockStatus(lockStatus);
-        // 发送锁定控制命令
-        mqttService.sendLockCommand(deviceId, device.getDeviceId(), lockStatus);
+        
         device.setUpdatedTime(new Date());
         return deviceRepository.save(device);
     }
 
-    @Override
-    public Device controlFan(String deviceId, Boolean status) {
-        Device device = deviceRepository.findByDeviceId(deviceId);
-        if (device == null) {
-            throw new RuntimeException("Device does not exist.");  // 设备不存在
-        }
-
-        device.setFanStatus(status);
-        // 发送风扇控制命令
-        mqttService.sendFanCommand(deviceId, device.getDeviceId(), status ? 1 : 0);
-        device.setUpdatedTime(new Date());
-        return deviceRepository.save(device);
-    }
-
-    @Override
-    public Device setFanSpeed(String deviceId, Integer speed) {
-        Device device = deviceRepository.findByDeviceId(deviceId);
-        if (device == null) {
-            throw new RuntimeException("Device does not exist.");  // 设备不存在
-        }
-
-        device.setFanSpeed(speed);
-        device.setUpdatedTime(new Date());
-        return deviceRepository.save(device);
-    }
-
-    @Override
-    public Device controlDevicePower(String deviceId, Boolean status) {
-        Device device = deviceRepository.findByDeviceId(deviceId);
-        if (device == null) {
-            throw new RuntimeException("Device does not exist.");  // 设备不存在
-        }
-
-        device.setDeviceStatus(status);
-        device.setUpdatedTime(new Date());
-        return deviceRepository.save(device);
-    }
-
-    @Override
-    public Device controlLight(String deviceId, Boolean status) {
-        Device device = deviceRepository.findByDeviceId(deviceId);
-        if (device == null) {
-            throw new RuntimeException("Device does not exist.");  // 设备不存在
-        }
-
-        device.setLightStatus(status);
-        // 发送灯光控制命令
-        mqttService.sendLightCommand(deviceId, device.getDeviceId(), status);
-        device.setUpdatedTime(new Date());
-        return deviceRepository.save(device);
-    }
 
     // 生成12位字母数字组合的唯一设备ID
     private String generateUniqueDeviceId() {
