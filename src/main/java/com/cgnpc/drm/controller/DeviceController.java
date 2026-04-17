@@ -227,5 +227,24 @@ public class DeviceController {
         Map<String, Object> statusInfo = deviceService.getDeviceStatusInfo(deviceId);
         return ResponseVO.success("获取设备状态信息成功", statusInfo);
     }
+
+    /**
+     * 获取分组下的设备信息（含模式）
+     * GET /api/device/getGroupDevices
+     */
+    @GetMapping("/getGroupDevices")
+    public ResponseVO<List<Map<String, Object>>> getGroupDevices(
+            @RequestParam(required = false) Long groupId,
+            @RequestParam(required = false) String deviceId,
+            @RequestParam(required = false, defaultValue = "true") boolean includeDevices,
+            HttpServletRequest request) {
+        Long userId = getCurrentUserId(request);
+        try {
+            List<Map<String, Object>> groupDevicesInfo = deviceService.getGroupDevicesInfo(groupId, deviceId, userId, includeDevices);
+            return ResponseVO.success("获取分组设备信息成功", groupDevicesInfo);
+        } catch (Exception e) {
+            return ResponseVO.error(500, "获取分组设备信息失败: " + e.getMessage());
+        }
+    }
   
 }

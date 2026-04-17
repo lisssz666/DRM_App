@@ -3,6 +3,7 @@ package com.cgnpc.drm.service;
 import com.cgnpc.drm.dto.ForgotPasswordDTO;
 import com.cgnpc.drm.dto.UserLoginDTO;
 import com.cgnpc.drm.dto.UserRegisterDTO;
+import com.cgnpc.drm.dto.UserUpdateDTO;
 import com.cgnpc.drm.entity.User;
 import java.util.Optional;
 
@@ -83,4 +84,12 @@ public interface UserService {
      * @param token 用户token
      */
     void logout(String token);
+
+    /**
+     * 更新用户信息
+     * @param userId 用户ID
+     * @param userUpdateDTO 用户更新信息
+     * @return 更新后的用户信息
+     */
+    User updateUserInfo(Long userId, UserUpdateDTO userUpdateDTO);
 }

@@ -7,9 +7,11 @@ import com.cgnpc.drm.service.DeviceService;
 import com.cgnpc.drm.service.MQTTService;
 import com.cgnpc.drm.service.MQTTMessageHandlerService;
 import com.cgnpc.drm.service.WorkingModeService;
+import com.cgnpc.drm.service.GroupService;
 import com.cgnpc.drm.dto.DeviceControlDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Date;
 import java.util.HashMap;
@@ -19,6 +21,7 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 @Service
+@Transactional
 public class DeviceServiceImpl implements DeviceService {
 
     @Autowired
@@ -32,6 +35,9 @@ public class DeviceServiceImpl implements DeviceService {
 
     @Autowired
     private WorkingModeService workingModeService;
+
+    @Autowired
+    private GroupService groupService;
 
     @Override
     public Device getDeviceInfo(String deviceId) {
@@ -318,6 +324,10 @@ public class DeviceServiceImpl implements DeviceService {
             defaultMode.setStatus(true);
             enabledModes = new java.util.ArrayList<>(1); // 预分配容量
             enabledModes.add(defaultMode);
+        } else if (enabledModes.size() > 1) {
+            // 如果有多个启用的模式，只返回按startTime倒序排序的第一个模式
+            enabledModes = new java.util.ArrayList<>(1);
+            enabledModes.add(workingModeService.getEnabledWorkingModes(deviceId).get(0));
         }
         
         statusInfo.put("enabledWorkingModes", enabledModes);
@@ -342,5 +352,66 @@ public class DeviceServiceImpl implements DeviceService {
             default:
                 return "Unknown";  // 未知
         }
+    }
+
+    @Override
+    public List<Map<String, Object>> getGroupDevicesInfo(Long groupId, String deviceId, Long userId, boolean includeDevices) {
+        List<Map<String, Object>> result = new java.util.ArrayList<>();
+        
+        // 获取分组列表
+        List<com.cgnpc.drm.entity.Group> groups;
+        if (groupId != null) {
+            // 如果传了分组ID，只获取该分组
+            com.cgnpc.drm.entity.Group group = groupService.getGroupById(groupId, userId);
+            if (group != null) {
+                groups = new java.util.ArrayList<>(1);
+                groups.add(group);
+            } else {
+                groups = new java.util.ArrayList<>();
+            }
+        } else {
+            // 否则获取所有分组（包括默认的All分组）
+            groups = groupService.getGroupsByUserId(userId);
+        }
+        
+        for (com.cgnpc.drm.entity.Group group : groups) {
+            Map<String, Object> groupInfo = new java.util.LinkedHashMap<>();
+            
+            // 分组基本信息
+            groupInfo.put("id", group.getId());
+            groupInfo.put("groupName", group.getGroupName());
+            
+            // 获取该分组下的设备ID列表
+            List<String> deviceIds = groupService.getDevicesInGroup(group.getId(), userId);
+            int deviceNum = deviceIds.size();
+            groupInfo.put("deviceNum", deviceNum);
+            
+            // 检查是否包含指定的设备
+            boolean isSelect = false;
+            if (deviceId != null && !deviceId.isEmpty()) {
+                isSelect = deviceIds.contains(deviceId);
+            }
+            groupInfo.put("isSelect", isSelect);
+            
+            // 如果需要包含设备详情
+            if (includeDevices) {
+                // 获取设备详细信息（含模式）
+                List<Map<String, Object>> devices = new java.util.ArrayList<>();
+                for (String devId : deviceIds) {
+                    try {
+                        Map<String, Object> deviceStatus = getDeviceStatusInfo(devId);
+                        devices.add(deviceStatus);
+                    } catch (Exception e) {
+                        // 忽略单个设备的错误，继续处理其他设备
+                        continue;
+                    }
+                }
+                groupInfo.put("devices", devices);
+            }
+            
+            result.add(groupInfo);
+        }
+        
+        return result;
     }
 }

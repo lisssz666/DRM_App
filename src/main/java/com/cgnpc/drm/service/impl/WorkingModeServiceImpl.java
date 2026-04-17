@@ -24,7 +24,8 @@ public class WorkingModeServiceImpl implements WorkingModeService {
 
     @Override
     public List<WorkingMode> getEnabledWorkingModes(String deviceId) {
-        return workingModeRepository.findByDeviceIdAndStatus(deviceId, true);
+        List<WorkingMode> modes = workingModeRepository.findByDeviceIdAndStatusOrderByStartTimeDesc(deviceId, true);
+        return modes;
     }
 
     @Override

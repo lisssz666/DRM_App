@@ -3,8 +3,10 @@ package com.cgnpc.drm.service.impl;
 import com.cgnpc.drm.dto.ForgotPasswordDTO;
 import com.cgnpc.drm.dto.UserLoginDTO;
 import com.cgnpc.drm.dto.UserRegisterDTO;
+import com.cgnpc.drm.dto.UserUpdateDTO;
 import com.cgnpc.drm.entity.User;
 import com.cgnpc.drm.repository.UserRepository;
+import com.cgnpc.drm.service.FileUploadService;
 import com.cgnpc.drm.service.MailService;
 import com.cgnpc.drm.service.SmsService;
 import com.cgnpc.drm.service.UserService;
@@ -24,7 +26,6 @@ import java.util.Optional;
  * 用户服务实现类
  */
 @Service
-@Transactional
 public class UserServiceImpl implements UserService {
 
     private static final Logger logger = LoggerFactory.getLogger(UserServiceImpl.class);
@@ -47,7 +48,11 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private JwtUtil jwtUtil;
 
+    @Autowired
+    private FileUploadService fileUploadService;
+
     @Override
+    @Transactional
     public User login(UserLoginDTO loginDTO) {
         Assert.notNull(loginDTO, "Login information cannot be empty.");  // 登录信息不能为空
 
@@ -105,6 +110,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public User register(UserRegisterDTO registerDTO) {
         Assert.notNull(registerDTO, "Registration information cannot be empty.");  // 注册信息不能为空
 
@@ -212,6 +218,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public boolean forgotPassword(ForgotPasswordDTO forgotPasswordDTO) {
         Assert.notNull(forgotPasswordDTO, "Forgot password information cannot be empty.");  // 忘记密码信息不能为空
 
@@ -276,5 +283,40 @@ public class UserServiceImpl implements UserService {
         // 将token加入黑名单
         jwtUtil.addToBlacklist(token);
         logger.info("用户退出登录，token已加入黑名单: {}", token);
+    }
+
+    @Override
+    @Transactional
+    public User updateUserInfo(Long userId, UserUpdateDTO userUpdateDTO) {
+        Assert.notNull(userId, "User ID cannot be empty.");
+        Assert.notNull(userUpdateDTO, "User update information cannot be empty.");
+
+        // 查找用户
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User does not exist."));
+
+        // 更新用户信息（只更新非空字段）
+        if (userUpdateDTO.getNickname() != null && !userUpdateDTO.getNickname().isEmpty()) {
+            user.setNickname(userUpdateDTO.getNickname());
+        }
+
+        // 处理头像上传
+        if (userUpdateDTO.getAvatarFile() != null && !userUpdateDTO.getAvatarFile().isEmpty()) {
+            // 上传新头像
+            String newAvatarUrl = fileUploadService.uploadAvatar(userUpdateDTO.getAvatarFile());
+            user.setAvatar(newAvatarUrl);
+        } else if (userUpdateDTO.getAvatar() != null && !userUpdateDTO.getAvatar().isEmpty()) {
+            // 直接设置头像URL
+            user.setAvatar(userUpdateDTO.getAvatar());
+        }
+
+        // 保存更新
+        user = userRepository.save(user);
+        logger.info("User information updated successfully: userId={}", userId);
+
+        // 清除密码，确保不返回给前端
+        user.setPassword(null);
+
+        return user;
     }
 }

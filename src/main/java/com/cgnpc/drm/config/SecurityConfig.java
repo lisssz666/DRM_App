@@ -38,7 +38,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .csrf().disable() // 禁用 CSRF 保护
                 .authorizeRequests()
                 .antMatchers("/api/user/register", "/api/user/login", "/api/user/sendCode", "/api/user/verifyCode", "/api/user/forgotPassword", "/api/user/checkEmail", "/api/user/checkPhone", "/api/user/logout").permitAll() // 允许访问用户相关接口
-                .antMatchers("/api/device/**", "/api/workingMode/**").permitAll() // 允许访问设备管理和工作模式接口
+                .antMatchers("/api/device/**", "/api/workingMode/**", "/api/group/**", "/api/deviceGroup/**").permitAll() // 允许访问设备管理和工作模式接口
                 .anyRequest().authenticated() // 其他接口需要认证
                 .and()
                 .sessionManagement()

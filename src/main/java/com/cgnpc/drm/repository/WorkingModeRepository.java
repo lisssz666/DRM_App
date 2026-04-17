@@ -10,4 +10,5 @@ import java.util.List;
 public interface WorkingModeRepository extends JpaRepository<WorkingMode, Long> {
     List<WorkingMode> findByDeviceId(String deviceId);
     List<WorkingMode> findByDeviceIdAndStatus(String deviceId, Boolean status);
+    List<WorkingMode> findByDeviceIdAndStatusOrderByStartTimeDesc(String deviceId, Boolean status);
 }

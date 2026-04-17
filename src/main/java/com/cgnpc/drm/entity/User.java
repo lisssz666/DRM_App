@@ -41,6 +41,18 @@ public class User {
     private String username;
 
     /**
+     * 用户昵称
+     */
+    @Column(length = 50)
+    private String nickname;
+
+    /**
+     * 用户头像URL
+     */
+    @Column(length = 255)
+    private String avatar;
+
+    /**
      * 用户状态：0-禁用，1-启用
      */
     @Column(nullable = false)

@@ -3,6 +3,7 @@ package com.cgnpc.drm.controller;
 import com.cgnpc.drm.dto.ForgotPasswordDTO;
 import com.cgnpc.drm.dto.UserLoginDTO;
 import com.cgnpc.drm.dto.UserRegisterDTO;
+import com.cgnpc.drm.dto.UserUpdateDTO;
 import com.cgnpc.drm.entity.User;
 import com.cgnpc.drm.service.UserService;
 import com.cgnpc.drm.util.JwtUtil;
@@ -236,6 +237,90 @@ public class UserController {
         } catch (Exception e) {
             logger.error("退出登录失败: {}", e.getMessage());
             return ResponseVO.error(500, "退出登录失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 更新用户信息
+     */
+    @PostMapping("/updateUserInfo")
+    public ResponseVO<User> updateUserInfo(
+            HttpServletRequest request,
+            @RequestParam(required = false) String nickname,
+            @RequestParam(required = false) String avatar,
+            @RequestParam(required = false) org.springframework.web.multipart.MultipartFile avatarFile) {
+        try {
+            // 从token获取用户ID
+            final String authorizationHeader = request.getHeader("Authorization");
+            if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+                return ResponseVO.error(401, "Unauthorized");
+            }
+            
+            String token = authorizationHeader.substring(7);
+            String username = jwtUtil.extractUsername(token);
+            
+            // 根据用户名（邮箱或手机号）查找用户
+            User user = null;
+            if (username.contains("@")) {
+                user = userService.findByEmail(username);
+            } else {
+                user = userService.findByPhone(username);
+            }
+            
+            if (user == null) {
+                return ResponseVO.error(404, "User does not exist.");
+            }
+            
+            // 构建UserUpdateDTO
+            UserUpdateDTO userUpdateDTO = new UserUpdateDTO();
+            userUpdateDTO.setNickname(nickname);
+            userUpdateDTO.setAvatar(avatar);
+            userUpdateDTO.setAvatarFile(avatarFile);
+            
+            // 更新用户信息
+            User updatedUser = userService.updateUserInfo(user.getId(), userUpdateDTO);
+            return ResponseVO.success("用户信息更新成功", updatedUser);
+        } catch (Exception e) {
+            logger.error("更新用户信息失败: {}", e.getMessage());
+            return ResponseVO.error(500, "更新用户信息失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 获取用户信息
+     * GET /api/user/getUserInfo
+     */
+    @GetMapping("/getUserInfo")
+    public ResponseVO<User> getUserInfo(HttpServletRequest request) {
+        try {
+            // 从token获取用户信息
+            final String authorizationHeader = request.getHeader("Authorization");
+            if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+                return ResponseVO.error(401, "Unauthorized");
+            }
+            
+            String token = authorizationHeader.substring(7);
+            String username = jwtUtil.extractUsername(token);
+            
+            // 根据用户名（邮箱或手机号）查找用户
+            User user = null;
+            if (username.contains("@")) {
+                user = userService.findByEmail(username);
+            } else {
+                user = userService.findByPhone(username);
+            }
+            
+            if (user == null) {
+                return ResponseVO.error(404, "User does not exist.");
+            }
+            
+            // 清除密码，确保不返回给前端
+            user.setPassword(null);
+            
+            return ResponseVO.success("获取用户信息成功", user);
+        } catch (Exception e) {
+            logger.error("获取用户信息失败: {}", e.getMessage());
+            return ResponseVO.error(500, "获取用户信息失败: " + e.getMessage());
         }
     }
 }

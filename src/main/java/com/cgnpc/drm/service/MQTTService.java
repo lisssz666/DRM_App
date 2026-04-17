@@ -51,7 +51,7 @@ public class MQTTService {
                 deviceStatus.getFanSpeed(), deviceStatus.getChildLock(), deviceStatus.getWorkStatus(),
                 deviceStatus.getLockStatus());
             
-            // 构建发送数据
+            // 构建发送数据  
             byte[] data = buildCommandData(deviceNumber, deviceStatus);
             
             // 打印发送的数据（十六进制格式）
