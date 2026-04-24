@@ -286,7 +286,6 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    @Transactional
     public User updateUserInfo(Long userId, UserUpdateDTO userUpdateDTO) {
         Assert.notNull(userId, "User ID cannot be empty.");
         Assert.notNull(userUpdateDTO, "User update information cannot be empty.");
@@ -294,6 +293,9 @@ public class UserServiceImpl implements UserService {
         // 查找用户
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User does not exist."));
+
+        // 保存原始密码，确保不被修改
+        String originalPassword = user.getPassword();
 
         // 更新用户信息（只更新非空字段）
         if (userUpdateDTO.getNickname() != null && !userUpdateDTO.getNickname().isEmpty()) {
@@ -309,6 +311,9 @@ public class UserServiceImpl implements UserService {
             // 直接设置头像URL
             user.setAvatar(userUpdateDTO.getAvatar());
         }
+
+        // 确保密码不被修改
+        user.setPassword(originalPassword);
 
         // 保存更新
         user = userRepository.save(user);

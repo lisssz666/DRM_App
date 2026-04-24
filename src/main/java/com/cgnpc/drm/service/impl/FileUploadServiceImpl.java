@@ -75,7 +75,7 @@ public class FileUploadServiceImpl implements FileUploadService {
             file.transferTo(new File(filePath));
 
             // 生成访问URL
-            String fileUrl = baseUrl + ":" + serverPort + urlPrefix + "/avatars/" + datePath + "/" + filename;
+            String fileUrl = baseUrl + urlPrefix + "/avatars/" + datePath + "/" + filename;
 
             logger.info("Avatar uploaded successfully: {}", fileUrl);
             return fileUrl;

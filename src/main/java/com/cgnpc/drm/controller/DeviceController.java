@@ -234,13 +234,12 @@ public class DeviceController {
      */
     @GetMapping("/getGroupDevices")
     public ResponseVO<List<Map<String, Object>>> getGroupDevices(
-            @RequestParam(required = false) Long groupId,
             @RequestParam(required = false) String deviceId,
             @RequestParam(required = false, defaultValue = "true") boolean includeDevices,
             HttpServletRequest request) {
         Long userId = getCurrentUserId(request);
         try {
-            List<Map<String, Object>> groupDevicesInfo = deviceService.getGroupDevicesInfo(groupId, deviceId, userId, includeDevices);
+            List<Map<String, Object>> groupDevicesInfo = deviceService.getGroupDevicesInfo(deviceId, userId, includeDevices);
             return ResponseVO.success("获取分组设备信息成功", groupDevicesInfo);
         } catch (Exception e) {
             return ResponseVO.error(500, "获取分组设备信息失败: " + e.getMessage());

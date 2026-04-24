@@ -2,6 +2,7 @@ package com.cgnpc.drm.entity;
 
 import lombok.Data;
 import javax.persistence.*;
+import org.hibernate.annotations.DynamicUpdate;
 import java.time.LocalDateTime;
 
 /**
@@ -10,6 +11,7 @@ import java.time.LocalDateTime;
 @Data
 @Entity
 @Table(name = "sys_user")
+@DynamicUpdate  //只修改更新的字段，而不是所有字段都更新
 public class User {
 
     @Id

@@ -88,11 +88,10 @@ public interface DeviceService {
 
     /**
      * 获取分组下的设备信息（含模式）
-     * @param groupId 分组ID
      * @param deviceId 设备ID
      * @param userId 用户ID
      * @param includeDevices 是否包含设备详情（默认true）
      * @return 分组设备信息列表
      */
-    List<Map<String, Object>> getGroupDevicesInfo(Long groupId, String deviceId, Long userId, boolean includeDevices);
+    List<Map<String, Object>> getGroupDevicesInfo(String deviceId, Long userId, boolean includeDevices);
 }

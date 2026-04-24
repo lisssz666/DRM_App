@@ -111,55 +111,38 @@ public class GroupController {
     }
 
     /**
-     * 添加设备到分组
-     * POST /api/group/addDevice
+     * 设备分组操作（添加、移除、移动）
+     * POST /api/group/deviceOperation
      */
-    @PostMapping("/addDevice")
-    public ResponseVO<DeviceGroup> addDeviceToGroup(
+    @PostMapping("/deviceOperation")
+    public ResponseVO<?> deviceOperation(
             @RequestParam String deviceId,
-            @RequestParam Long groupId,
+            @RequestParam String operation, // add:添加到分组, remove:从分组移除, move:移动到其他分组
+            @RequestParam(required = false) Long groupId,
             HttpServletRequest request) {
         Long userId = getCurrentUserId(request);
         try {
-            DeviceGroup deviceGroup = groupService.addDeviceToGroup(deviceId, groupId, userId);
-            return ResponseVO.success("设备添加到分组成功", deviceGroup);
+            switch (operation) {
+                case "add":
+                    if (groupId == null) {
+                        return ResponseVO.error(400, "添加设备到分组时必须指定groupId");
+                    }
+                    DeviceGroup addedDevice = groupService.addDeviceToGroup(deviceId, groupId, userId);
+                    return ResponseVO.success("设备添加到分组成功", addedDevice);
+                case "remove":
+                    boolean removed = groupService.removeDeviceFromGroup(deviceId, userId);
+                    return ResponseVO.success("设备从分组移除成功", removed);
+                case "move":
+                    if (groupId == null) {
+                        return ResponseVO.error(400, "移动设备到分组时必须指定groupId");
+                    }
+                    DeviceGroup movedDevice = groupService.moveDeviceToGroup(deviceId, groupId, userId);
+                    return ResponseVO.success("设备移动到分组成功", movedDevice);
+                default:
+                    return ResponseVO.error(400, "不支持的操作类型，支持的操作：add, remove, move");
+            }
         } catch (Exception e) {
-            return ResponseVO.error(500, "设备添加到分组失败: " + e.getMessage());
-        }
-    }
-
-    /**
-     * 从分组移除设备
-     * DELETE /api/group/removeDevice
-     */
-    @DeleteMapping("/removeDevice")
-    public ResponseVO<Boolean> removeDeviceFromGroup(
-            @RequestParam String deviceId,
-            HttpServletRequest request) {
-        Long userId = getCurrentUserId(request);
-        try {
-            boolean result = groupService.removeDeviceFromGroup(deviceId, userId);
-            return ResponseVO.success("设备从分组移除成功", result);
-        } catch (Exception e) {
-            return ResponseVO.error(500, "设备从分组移除失败: " + e.getMessage());
-        }
-    }
-
-    /**
-     * 移动设备到其他分组
-     * PUT /api/group/moveDevice
-     */
-    @PutMapping("/moveDevice")
-    public ResponseVO<DeviceGroup> moveDeviceToGroup(
-            @RequestParam String deviceId,
-            @RequestParam Long groupId,
-            HttpServletRequest request) {
-        Long userId = getCurrentUserId(request);
-        try {
-            DeviceGroup deviceGroup = groupService.moveDeviceToGroup(deviceId, groupId, userId);
-            return ResponseVO.success("设备移动到分组成功", deviceGroup);
-        } catch (Exception e) {
-            return ResponseVO.error(500, "设备移动到分组失败: " + e.getMessage());
+            return ResponseVO.error(500, "操作失败: " + e.getMessage());
         }
     }
 

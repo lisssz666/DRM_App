@@ -355,25 +355,14 @@ public class DeviceServiceImpl implements DeviceService {
     }
 
     @Override
-    public List<Map<String, Object>> getGroupDevicesInfo(Long groupId, String deviceId, Long userId, boolean includeDevices) {
+    public List<Map<String, Object>> getGroupDevicesInfo(String deviceId, Long userId, boolean includeDevices) {
         List<Map<String, Object>> result = new java.util.ArrayList<>();
+        Map<String, Object> allGroupInfo = null;
         
-        // 获取分组列表
-        List<com.cgnpc.drm.entity.Group> groups;
-        if (groupId != null) {
-            // 如果传了分组ID，只获取该分组
-            com.cgnpc.drm.entity.Group group = groupService.getGroupById(groupId, userId);
-            if (group != null) {
-                groups = new java.util.ArrayList<>(1);
-                groups.add(group);
-            } else {
-                groups = new java.util.ArrayList<>();
-            }
-        } else {
-            // 否则获取所有分组（包括默认的All分组）
-            groups = groupService.getGroupsByUserId(userId);
-        }
+        // 获取所有分组（包括默认的All分组）
+        List<com.cgnpc.drm.entity.Group> groups = groupService.getGroupsByUserId(userId);
         
+        // 一次循环处理所有分组
         for (com.cgnpc.drm.entity.Group group : groups) {
             Map<String, Object> groupInfo = new java.util.LinkedHashMap<>();
             
@@ -400,6 +389,7 @@ public class DeviceServiceImpl implements DeviceService {
                 for (String devId : deviceIds) {
                     try {
                         Map<String, Object> deviceStatus = getDeviceStatusInfo(devId);
+                        deviceStatus.put("groupName", group.getGroupName()); // 添加分组名称
                         devices.add(deviceStatus);
                     } catch (Exception e) {
                         // 忽略单个设备的错误，继续处理其他设备
@@ -409,7 +399,17 @@ public class DeviceServiceImpl implements DeviceService {
                 groupInfo.put("devices", devices);
             }
             
-            result.add(groupInfo);
+            // 保存All分组信息，其他分组直接添加
+            if ("All".equals(group.getGroupName())) {
+                allGroupInfo = groupInfo;
+            } else {
+                result.add(groupInfo);
+            }
+        }
+        
+        // 将All分组插入到列表第一位
+        if (allGroupInfo != null) {
+            result.add(0, allGroupInfo);
         }
         
         return result;
