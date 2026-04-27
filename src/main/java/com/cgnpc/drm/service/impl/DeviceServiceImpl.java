@@ -307,6 +307,9 @@ public class DeviceServiceImpl implements DeviceService {
         statusInfo.put("devicePostureDesc", device.getDevicePosture() == null ? "Unknown" : (device.getDevicePosture() == 0 ? "Upright" : "Tilted"));  // 竖立 : 倾倒
         statusInfo.put("liquidLevelDesc", getLiquidLevelDescription(device.getLiquidLevel()));
 
+        com.cgnpc.drm.entity.Group deviceGroup = groupService.getDeviceGroup(deviceId, device.getUserId());
+        statusInfo.put("groupName", deviceGroup != null ? deviceGroup.getGroupName() : "All");
+
         // 添加启用的工作模式信息
         List<WorkingMode> enabledModes = workingModeService.getEnabledWorkingModes(deviceId);
         
@@ -389,7 +392,18 @@ public class DeviceServiceImpl implements DeviceService {
                 for (String devId : deviceIds) {
                     try {
                         Map<String, Object> deviceStatus = getDeviceStatusInfo(devId);
-                        deviceStatus.put("groupName", group.getGroupName()); // 添加分组名称
+                        // 如果是All分组，获取设备实际所属的分组名称
+                        if ("All".equals(group.getGroupName())) {
+                            com.cgnpc.drm.entity.Group deviceGroup = groupService.getDeviceGroup(devId, userId);
+                            if (deviceGroup != null) {
+                                deviceStatus.put("groupName", deviceGroup.getGroupName());
+                            } else {
+                                deviceStatus.put("groupName", "All");
+                            }
+                        } else {
+                            // 其他分组，直接使用当前分组名称
+                            deviceStatus.put("groupName", group.getGroupName());
+                        }
                         devices.add(deviceStatus);
                     } catch (Exception e) {
                         // 忽略单个设备的错误，继续处理其他设备

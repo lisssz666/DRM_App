@@ -82,4 +82,12 @@ public interface GroupService {
      * @param userId 用户ID
      */
     void initializeDefaultGroup(Long userId);
+
+    /**
+     * 根据设备ID获取设备所属的分组
+     * @param deviceId 设备ID
+     * @param userId 用户ID
+     * @return 分组信息
+     */
+    Group getDeviceGroup(String deviceId, Long userId);
 }

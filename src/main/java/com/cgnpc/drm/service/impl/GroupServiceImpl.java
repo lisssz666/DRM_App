@@ -168,4 +168,16 @@ public class GroupServiceImpl implements GroupService {
             groupRepository.save(defaultGroup);
         }
     }
+
+    @Override
+    public Group getDeviceGroup(String deviceId, Long userId) {
+        // 查询设备的分组关联
+        DeviceGroup deviceGroup = deviceGroupRepository.findByDeviceIdAndUserId(deviceId, userId);
+        if (deviceGroup != null) {
+            // 如果找到关联，返回对应的分组
+            return groupRepository.findByIdAndUserId(deviceGroup.getGroupId(), userId);
+        }
+        // 如果没有找到关联，返回null
+        return null;
+    }
 }
