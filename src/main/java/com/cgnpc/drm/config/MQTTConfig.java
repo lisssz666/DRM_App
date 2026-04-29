@@ -52,12 +52,14 @@ public class MQTTConfig {
                 @Override
                 public void connectComplete(boolean reconnect, String serverURI) {
                     logger.info("MQTT客户端连接成功，broker地址: {}", serverURI);
-                    // 订阅设备状态主题
+                    // 订阅设备状态主题 
                     try {
                         client.subscribe("spray/+/status", qos);
                         client.subscribe("spray/+/ctr", qos);
                         client.subscribe("spray/+/heart", qos);
-                        logger.info("已订阅设备主题: spray/+/status, spray/+/ctr, spray/+/heart");
+                        client.subscribe("spray/+/info", qos);
+                        client.subscribe("spray/+/alarm", qos);
+                        logger.info("已订阅设备主题: spray/+/status, spray/+/ctr, spray/+/heart, spray/+/info, spray/+/alarm"); 
                     } catch (MqttException e) {
                         logger.error("订阅主题失败: {}", e.getMessage());
                     }

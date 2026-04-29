@@ -22,6 +22,7 @@ public class MQTTMessageHandlerService {
     private static final String TOPIC_SUFFIX_STATUS = "/status";
     private static final String TOPIC_SUFFIX_CTR = "/ctr";
     private static final String TOPIC_SUFFIX_HEART = "/heart";
+    private static final String TOPIC_SUFFIX_INFO = "/info"; // 新增主题 - 接收硬件传的设备信息
 
     @Autowired
     private DeviceRepository deviceRepository;
@@ -49,13 +50,19 @@ public class MQTTMessageHandlerService {
             // 根据消息类型处理
             switch (topicType) {
                 case "status":
-                    processStatusMessage(deviceId, messageContent);
+                    processStatusMessage(deviceId, messageContent); // 处理旧格式状态消息
                     break;
                 case "ctr":
-                    processControlMessage(deviceId, messageContent);
-                    break;
+                    processControlMessage(deviceId, messageContent); // 处理控制消息
+                                       break;
                 case "heart":
-                    processHeartbeatMessage(deviceId, messageContent);
+                    processHeartbeatMessage(deviceId, messageContent); // 处理心跳消息
+                    break;
+                case "info":
+                    processDeviceInfoMessage(deviceId, messageContent);
+                    break;
+                case "alarm":
+                    processAlarmMessage(deviceId, messageContent);
                     break;
                 default:
                     logger.warn("未知主题类型: {}", topicType);
@@ -340,6 +347,302 @@ public class MQTTMessageHandlerService {
             device.setUpdatedTime(new Date());
             deviceRepository.save(device);
             logger.info("设备{}气泵使用时间已重置", deviceId);
+        }
+    }
+
+    /**
+     * 处理设备配网信息消息
+     * 消息格式: 0xcd + 机器设备号(20Byte) + MAC地址(蓝牙+WIFI) + 固件版本 + 软件版本 + 联网 + 机型 + 机型 + 累加和
+     * @param deviceId 设备ID
+     * @param messageContent 消息内容（16进制字符串）
+     */
+    private void processDeviceInfoMessage(String deviceId, String messageContent) {
+        logger.info("开始处理设备配网信息消息: 设备ID={}, 消息内容={}", deviceId, messageContent);
+
+        try {
+            // 解析16进制消息
+            byte[] data = hexStringToByteArray(messageContent);
+            if (data == null || data.length < 35) {
+                logger.warn("配网信息消息格式错误: 长度不足35字节，内容={}, 长度={}", messageContent, data != null ? data.length : 0);
+                return;
+            }
+
+            // 验证起始字节 0xcd
+            if (data[0] != (byte) 0xcd) {
+                logger.warn("配网信息消息起始字节错误: 期望0xcd, 实际0x{}", String.format("%02X", data[0]));
+                return;
+            }
+
+            // 解析设备号 (B1-B20)
+            String deviceNumber = new String(data, 1, 20, "UTF-8").trim();
+            logger.info("设备号: {}", deviceNumber);
+
+            // 解析MAC地址 (B21-B26) - 蓝牙+WIFI
+            StringBuilder macAddress = new StringBuilder();
+            for (int i = 21; i <= 26; i++) {
+                if (i > 21) macAddress.append(":");
+                macAddress.append(String.format("%02X", data[i]));
+            }
+            String mac = macAddress.toString();
+            logger.info("MAC地址: {}", mac);
+
+            // 解析固件版本 (B27)
+            String firmwareVersion = String.format("%d.%d", (data[27] >> 4) & 0x0F, data[27] & 0x0F);
+            logger.info("固件版本: {}", firmwareVersion);
+
+            // 解析软件版本 (B28)
+            String softwareVersion = String.format("%d.%d", (data[28] >> 4) & 0x0F, data[28] & 0x0F);
+            logger.info("软件版本: {}", softwareVersion);
+
+            // 解析联网状态 (B29)
+            boolean networkStatus = data[29] == 1;
+            logger.info("联网状态: {}", networkStatus ? "已联网" : "未联网");
+
+            // 解析机型 (B30-B32)
+            String deviceType = parseDeviceType(data[30], data[31], data[32]);
+            logger.info("机型: {}", deviceType);
+
+            // 验证累加和 (B34)
+            byte checksum = calculateChecksum(data, 0, 33);
+            if (checksum != data[34]) {
+                logger.warn("配网信息消息校验和错误: 期望0x{}, 实际0x{}", 
+                    String.format("%02X", checksum), String.format("%02X", data[34]));
+                return;
+            }
+
+            // 检查设备是否已存在
+            Device device = deviceRepository.findByDeviceId(deviceNumber);
+            if (device == null) {
+                // 创建设备
+                device = new Device();
+                device.setDeviceId(deviceNumber);
+                device.setDeviceName("香薰机" + deviceNumber); // 默认设备名称
+                device.setModel(generateDeviceModel()); // 生成设备型号
+                device.setUserId(1L); // 默认用户ID，后续可以根据业务调整
+                device.setEssentialOilName("默认精油"); // 默认精油名称
+                device.setEssentialOilLevel(100); // 默认精油量100%
+                device.setFanStatus(false);
+                device.setDeviceStatus(false);
+                device.setLockStatus(false);
+                device.setLightStatus(false);
+                device.setFanSpeed(50);
+                device.setCreatedTime(new Date());
+                logger.info("创建新设备: {}", deviceNumber);
+            } else {
+                logger.info("更新现有设备: {}", deviceNumber);
+            }
+
+            // 更新配网信息
+            device.setMacAddress(mac);
+            device.setFirmwareVersion(firmwareVersion);
+            device.setSoftwareVersion(softwareVersion);
+            device.setNetworkStatus(networkStatus);
+            device.setDeviceType(deviceType);
+            device.setUpdatedTime(new Date());
+
+            // 保存设备
+            deviceRepository.save(device);
+            logger.info("设备{}配网信息处理成功", deviceNumber);
+
+        } catch (Exception e) {
+            logger.error("处理设备配网信息消息失败: {}", e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 将16进制字符串转换为字节数组
+     * @param hexString 16进制字符串
+     * @return 字节数组
+     */
+    private byte[] hexStringToByteArray(String hexString) {
+        if (hexString == null || hexString.length() % 2 != 0) {
+            return null;
+        }
+        int len = hexString.length();
+        byte[] data = new byte[len / 2];
+        for (int i = 0; i < len; i += 2) {
+            data[i / 2] = (byte) ((Character.digit(hexString.charAt(i), 16) << 4)
+                                 + Character.digit(hexString.charAt(i + 1), 16));
+        }
+        return data;
+    }
+
+    /**
+     * 计算累加和校验
+     * @param data 数据
+     * @param start 起始位置
+     * @param end 结束位置
+     * @return 累加和
+     */
+    private byte calculateChecksum(byte[] data, int start, int end) {
+        int sum = 0;
+        for (int i = start; i <= end && i < data.length; i++) {
+            sum += data[i] & 0xFF;
+        }
+        return (byte) (sum & 0xFF);
+    }
+
+    /**
+     * 解析机型
+     * @param b30 B30字节
+     * @param b31 B31字节
+     * @param b32 B32字节
+     * @return 机型描述
+     */
+    private String parseDeviceType(byte b30, byte b31, byte b32) {
+        // 根据实际协议解析机型
+        // 这里假设B30表示WIFI支持，B31表示蓝牙支持，B32表示其他特性
+        boolean hasWifi = (b30 & 0x01) != 0;
+        boolean hasBluetooth = (b31 & 0x01) != 0;
+
+        if (hasWifi && hasBluetooth) {
+            return "wifi_bluetooth";
+        } else if (hasWifi) {
+            return "wifi";
+        } else if (hasBluetooth) {
+            return "bluetooth";
+        } else {
+            return "unknown";
+        }
+    }
+
+    /**
+     * 生成设备型号：大写字母+3个随机数字
+     */
+    private String generateDeviceModel() {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < 3; i++) {
+            char c = (char) (65 + (int) (Math.random() * 26)); // 65是'A'的ASCII码
+            sb.append(c);
+        }
+        for (int i = 0; i < 3; i++) {
+            sb.append((int) (Math.random() * 10));
+        }
+        return sb.toString();
+    }
+
+    /**
+     * 处理设备报警消息
+     * 消息格式: 机器设备号(20Byte) + 年 + 月 + 日 + 时 + 分 + 秒 + 错误代码1 + 错误代码2 + 校验码
+     * 总长度: 31字节
+     * @param deviceId 设备ID
+     * @param messageContent 消息内容（16进制字符串）
+     */
+    private void processAlarmMessage(String deviceId, String messageContent) {
+        logger.info("开始处理设备报警消息: 设备ID={}, 消息内容={}", deviceId, messageContent);
+
+        try {
+            // 解析16进制消息
+            byte[] data = hexStringToByteArray(messageContent);
+            if (data == null || data.length < 31) {
+                logger.warn("报警消息格式错误: 长度不足31字节，内容={}, 长度={}", messageContent, data != null ? data.length : 0);
+                return;
+            }
+
+            // 解析设备号 (B0-B19) - 注意：根据协议文档，B0-B20是设备号，共21字节
+            String deviceNumber = new String(data, 0, 20, "UTF-8").trim();
+            logger.info("报警设备号: {}", deviceNumber);
+
+            // 解析时间信息
+            int year = 2000 + (data[20] & 0xFF); // B21: 年份（相对于2000）
+            int month = data[21] & 0xFF; // B22: 月份
+            int day = data[22] & 0xFF; // B23: 日
+            int hour = data[23] & 0xFF; // B24: 时
+            int minute = data[24] & 0xFF; // B25: 分
+            int second = data[25] & 0xFF; // B26: 秒
+            
+            logger.info("报警时间: {}-{}-{} {}:{}:{}", year, month, day, hour, minute, second);
+
+            // 解析错误代码
+            byte errorCode1 = data[26]; // B27: 错误代码1
+            byte errorCode2 = data[27]; // B28: 错误代码2
+            
+            logger.info("错误代码1: 0x{}", String.format("%02X", errorCode1));
+            logger.info("错误代码2: 0x{}", String.format("%02X", errorCode2));
+
+            // 验证校验码 (B29)
+            byte checksum = calculateChecksum(data, 0, 28);
+            if (checksum != data[29]) {
+                logger.warn("报警消息校验和错误: 期望0x{}, 实际0x{}", 
+                    String.format("%02X", checksum), String.format("%02X", data[29]));
+                return;
+            }
+
+            // 解析错误代码并更新设备状态
+            Device device = deviceRepository.findByDeviceId(deviceNumber);
+            if (device == null) {
+                logger.warn("设备不存在: {}", deviceNumber);
+                return;
+            }
+
+            // 处理错误代码1
+            processErrorCode(device, errorCode1);
+            
+            // 处理错误代码2
+            processErrorCode(device, errorCode2);
+
+            // 更新设备信息
+            device.setUpdatedTime(new Date());
+            deviceRepository.save(device);
+            logger.info("设备{}报警信息处理成功", deviceNumber);
+
+        } catch (Exception e) {
+            logger.error("处理设备报警消息失败: {}", e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 处理错误代码
+     * @param device 设备对象
+     * @param errorCode 错误代码
+     */
+    private void processErrorCode(Device device, byte errorCode) {
+        String errorDesc = getErrorCodeDescription(errorCode);
+        logger.info("处理错误代码 0x{}: {}", String.format("%02X", errorCode), errorDesc);
+
+        switch (errorCode & 0xFF) {
+            case 0x80: // 喷香机倾斜
+                device.setDevicePosture(1); // 1-倾倒
+                break;
+            case 0x81: // 低油液报警
+                device.setOilLowAlert(true);
+                device.setLiquidLevel(0); // 低液位
+                break;
+            case 0x82: // 油耗尽报警
+                device.setOilLowAlert(true);
+                device.setLiquidLevel(0); // 低液位
+                device.setEssentialOilLevel(0);
+                break;
+            case 0x83: // 气泵损坏
+                device.setPumpReplaceAlert(true);
+                break;
+            case 0x00: // 无错误（占位）
+                break;
+            default:
+                logger.warn("未知错误代码: 0x{}", String.format("%02X", errorCode));
+                break;
+        }
+    }
+
+    /**
+     * 获取错误代码描述
+     * @param errorCode 错误代码
+     * @return 错误描述
+     */
+    private String getErrorCodeDescription(byte errorCode) {
+        switch (errorCode & 0xFF) {
+            case 0x80:
+                return "喷香机倾斜";
+            case 0x81:
+                return "低油液报警";
+            case 0x82:
+                return "油耗尽报警";
+            case 0x83:
+                return "气泵损坏";
+            case 0x00:
+                return "无错误";
+            default:
+                return "未知错误";
         }
     }
 }

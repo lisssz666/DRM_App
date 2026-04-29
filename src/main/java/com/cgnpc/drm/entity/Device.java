@@ -77,4 +77,23 @@ public class Device {
     @Column(name = "last_pump_reset_time")
     @Temporal(TemporalType.TIMESTAMP)
     private Date lastPumpResetTime; // 上次重置气泵使用时间的时间
+
+    // 新增字段 - 配网信息
+    @Column(name = "mac_address", length = 50)
+    private String macAddress; // MAC地址（蓝牙+WIFI）
+
+    @Column(name = "firmware_version", length = 20)
+    private String firmwareVersion; // 固件版本
+
+    @Column(name = "software_version", length = 20)
+    private String softwareVersion; // 软件版本
+
+    @Column(name = "network_status")
+    private Boolean networkStatus; // 联网状态：true-已联网，false-未联网
+
+    @Column(name = "device_type", length = 20)
+    private String deviceType; // 机型：wifi、bluetooth、wifi_bluetooth
+
+    @Column(name = "device_picture", length = 500)
+    private String devicePicture; // 设备图片URL
 }

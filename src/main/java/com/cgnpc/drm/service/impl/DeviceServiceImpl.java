@@ -302,6 +302,7 @@ public class DeviceServiceImpl implements DeviceService {
         statusInfo.put("pumpReplaceAlert", device.getPumpReplaceAlert());
         statusInfo.put("lastPumpResetTime", device.getLastPumpResetTime());
         statusInfo.put("updatedTime", device.getUpdatedTime());
+        statusInfo.put("devicePicture", device.getDevicePicture()); // 设备图片
 
         // 添加状态描述
         statusInfo.put("devicePostureDesc", device.getDevicePosture() == null ? "Unknown" : (device.getDevicePosture() == 0 ? "Upright" : "Tilted"));  // 竖立 : 倾倒
