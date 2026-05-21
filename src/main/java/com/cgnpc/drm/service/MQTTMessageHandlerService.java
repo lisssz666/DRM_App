@@ -34,8 +34,18 @@ public class MQTTMessageHandlerService {
      */
     public void handleMessage(String topic, MqttMessage message) {
         try {
-            String messageContent = new String(message.getPayload());
-            logger.info("接收到MQTT消息: 主题={}, 内容={}", topic, messageContent);
+            byte[] payload = message.getPayload();
+            String messageContent = new String(payload);
+            
+            // 打印原始数据信息，方便测试调试
+            logger.info("========== MQTT消息接收开始 ==========");
+            logger.info("主题: {}", topic);
+            logger.info("消息长度: {} 字节", payload.length);
+            logger.info("消息内容(字符串): {}", messageContent);
+            logger.info("消息内容(十六进制): {}", bytesToHex(payload));
+            logger.info("QoS: {}", message.getQos());
+            logger.info("是否保留消息: {}", message.isRetained());
+            logger.info("========== MQTT消息接收结束 ==========");
 
             // 解析设备ID和消息类型
             TopicInfo topicInfo = parseTopicInfo(topic);
@@ -526,22 +536,55 @@ public class MQTTMessageHandlerService {
      * 消息格式: 机器设备号(20Byte) + 年 + 月 + 日 + 时 + 分 + 秒 + 错误代码1 + 错误代码2 + 校验码
      * 总长度: 31字节
      * @param deviceId 设备ID
-     * @param messageContent 消息内容（16进制字符串）
+     * @param messageContent 消息内容（原始字符串或16进制字符串）
      */
     private void processAlarmMessage(String deviceId, String messageContent) {
-        logger.info("开始处理设备报警消息: 设备ID={}, 消息内容={}", deviceId, messageContent);
+        logger.info("开始处理设备报警消息: 设备ID={}, 消息内容(原始)={}", deviceId, messageContent);
 
         try {
-            // 解析16进制消息
-            byte[] data = hexStringToByteArray(messageContent);
-            if (data == null || data.length < 31) {
-                logger.warn("报警消息格式错误: 长度不足31字节，内容={}, 长度={}", messageContent, data != null ? data.length : 0);
+            // 清理消息内容：去除引号、空格等干扰字符
+            String cleanedContent = messageContent.trim().replace("\"", "");
+            // 尝试解析为16进制数据
+            byte[] data = hexStringToByteArray(cleanedContent);
+            // 如果16进制解析失败，直接使用原始字节
+            if (data == null || data.length == 0) {
+                data = cleanedContent.getBytes();
+            }
+            
+            logger.info("报警消息数据长度: {} 字节", data.length);
+            logger.info("报警消息十六进制: {}", bytesToHex(data));
+            
+            // 最小长度检查：至少需要20字节的设备号
+            if (data == null || data.length < 20) {
+                logger.warn("报警消息格式错误: 长度不足20字节（最小设备号长度），数据长度={}", data != null ? data.length : 0);
                 return;
             }
 
-            // 解析设备号 (B0-B19) - 注意：根据协议文档，B0-B20是设备号，共21字节
+            // 解析设备号 (B0-B19) - 共20字节
             String deviceNumber = new String(data, 0, 20, "UTF-8").trim();
             logger.info("报警设备号: {}", deviceNumber);
+
+            // 完整消息需要31字节，检查是否有完整数据
+            if (data.length < 31) {
+                logger.warn("报警消息数据不完整: 期望31字节，实际{}字节。可能是部分消息或数据截断。", data.length);
+                
+                // 尝试使用主题中的设备ID查找设备
+                Device device = deviceRepository.findByDeviceId(deviceId);
+                if (device != null) {
+                    logger.info("使用主题中的设备ID({})查找设备成功", deviceId);
+                    deviceNumber = deviceId;
+                } else {
+                    // 使用解析出的设备号查找
+                    device = deviceRepository.findByDeviceId(deviceNumber);
+                }
+                
+                if (device != null) {
+                    logger.warn("数据不完整，跳过时间和错误代码解析，仅记录报警事件");
+                    device.setUpdatedTime(new Date());
+                    deviceRepository.save(device);
+                }
+                return;
+            }
 
             // 解析时间信息
             int year = 2000 + (data[20] & 0xFF); // B21: 年份（相对于2000）
@@ -550,42 +593,35 @@ public class MQTTMessageHandlerService {
             int hour = data[23] & 0xFF; // B24: 时
             int minute = data[24] & 0xFF; // B25: 分
             int second = data[25] & 0xFF; // B26: 秒
-            
-            logger.info("报警时间: {}-{}-{} {}:{}:{}", year, month, day, hour, minute, second);
 
+            logger.info("报警时间: {}-{}-{} {}:{}:{}", year, month, day, hour, minute, second);
             // 解析错误代码
             byte errorCode1 = data[26]; // B27: 错误代码1
             byte errorCode2 = data[27]; // B28: 错误代码2
             
-            logger.info("错误代码1: 0x{}", String.format("%02X", errorCode1));
-            logger.info("错误代码2: 0x{}", String.format("%02X", errorCode2));
-
-            // 验证校验码 (B29)
-            byte checksum = calculateChecksum(data, 0, 28);
-            if (checksum != data[29]) {
+            logger.info("错误代码1: 0x{} ({})", String.format("%02X", errorCode1), getErrorCodeDescription(errorCode1));
+            logger.info("错误代码2: 0x{} ({})", String.format("%02X", errorCode2), getErrorCodeDescription(errorCode2));
+            // 验证校验码 (B30)
+            byte checksum = calculateChecksum(data, 0, 29);
+            if (checksum != data[30]) {
                 logger.warn("报警消息校验和错误: 期望0x{}, 实际0x{}", 
-                    String.format("%02X", checksum), String.format("%02X", data[29]));
-                return;
+                    String.format("%02X", checksum), String.format("%02X", data[30]));
+                // 校验和错误但仍尝试处理，记录警告
             }
-
             // 解析错误代码并更新设备状态
             Device device = deviceRepository.findByDeviceId(deviceNumber);
             if (device == null) {
                 logger.warn("设备不存在: {}", deviceNumber);
                 return;
             }
-
             // 处理错误代码1
             processErrorCode(device, errorCode1);
-            
             // 处理错误代码2
             processErrorCode(device, errorCode2);
-
             // 更新设备信息
             device.setUpdatedTime(new Date());
             deviceRepository.save(device);
             logger.info("设备{}报警信息处理成功", deviceNumber);
-
         } catch (Exception e) {
             logger.error("处理设备报警消息失败: {}", e.getMessage(), e);
         }
@@ -644,5 +680,21 @@ public class MQTTMessageHandlerService {
             default:
                 return "未知错误";
         }
+    }
+
+    /**
+     * 将字节数组转换为十六进制字符串，用于打印原始数据
+     * @param bytes 字节数组
+     * @return 十六进制字符串
+     */
+    private String bytesToHex(byte[] bytes) {
+        if (bytes == null || bytes.length == 0) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder();
+        for (byte b : bytes) {
+            sb.append(String.format("%02X ", b));
+        }
+        return sb.toString().trim();
     }
 }
